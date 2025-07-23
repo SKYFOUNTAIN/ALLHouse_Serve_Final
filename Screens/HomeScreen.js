@@ -70,9 +70,25 @@ export default function HomeScreen({ navigation }) {
             .filter(ev => new Date(ev.date) >= now)
             .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+          const normalizeCategory = (cat) => {
+            switch (cat) {
+              case 'sports':
+              case '⚽ Sports':
+                return 'sports';
+              case 'boardGames':
+              case '♟️ Board Games':
+                return 'boardGames';
+              default:
+                return cat;
+            }
+          };
+
           const matchedEvents = (data.categories || []).length
-            ? upcoming.filter(ev => data.categories.includes(ev.category))
+            ? upcoming.filter(ev =>
+              data.categories.map(normalizeCategory).includes(normalizeCategory(ev.category))
+            )
             : upcoming;
+
 
           const selectedEvent = matchedEvents.length > 0 ? matchedEvents[0] : null;
           setTopEvent(selectedEvent);
@@ -128,14 +144,14 @@ export default function HomeScreen({ navigation }) {
         onPress: async () => {
           const currentUser = auth.currentUser;
           if (!currentUser) return Alert.alert('Not Logged In');
-  
+
           const userRef = doc(db, 'users', currentUser.uid);
           const userSnap = await getDoc(userRef);
           if (!userSnap.exists()) return Alert.alert('No user data');
-  
+
           const user = userSnap.data();
           const eventRef = doc(db, 'events', eventId);
-  
+
           try {
             await updateDoc(eventRef, {
               [`signUps.${currentUser.uid}`]: {
@@ -147,32 +163,20 @@ export default function HomeScreen({ navigation }) {
               },
               signUpCount: increment(1),
             });
-  
-            // ✅ Send to Google Sheets
+
             fetch('https://script.google.com/macros/s/AKfycbwFvi1qgPzwr7gcZDT2HJkqO1oUseum0wIUAH_dFqs8gxusi-9uGTAVN2JOI1viLHHhOg/exec', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                eventTitle: eventTitle,
+                eventTitle,
                 house: user.house || '',
                 name: user.name || 'Unknown',
                 email: user.email || '',
-                age: user.age || '', // make sure this field exists in your Firestore user
+                age: user.age || '',
                 signedUpAt: new Date().toISOString(),
               }),
-            })
-            .then(res => res.json())
-            .then(json => {
-              if (json.result !== 'success') {
-                console.warn('Google Sheets logging failed:', json);
-              }
-            })
-            .catch(err => {
-              console.error('Failed to send to Google Sheets:', err);
-            });
-  
+            }).catch(err => console.error('Failed to send to Google Sheets:', err));
+
             Alert.alert('Signed Up!', `You are signed up for "${eventTitle}"`);
           } catch (error) {
             console.error('Failed to sign up:', error);
@@ -182,6 +186,7 @@ export default function HomeScreen({ navigation }) {
       },
     ]);
   };
+
 
   const barData = houseLeaderboard.map(h => ({
     value: h.points,
@@ -209,7 +214,7 @@ export default function HomeScreen({ navigation }) {
           {topEvent ? (
             <>
               <Text style={styles.bodyText}>Upcoming: {topEvent.title}</Text>
-              <Button onPress={() => handleSignUpForEvent(topEvent.title)} style={styles.cardButton}>
+              <Button onPress={() => handleSignUpForEvent(topEvent.id, topEvent.title)} style={styles.cardButton}>
                 Sign Up for {topEvent.title}
               </Button>
             </>

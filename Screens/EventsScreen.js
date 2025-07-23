@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
+    color: '#fff',
   },
   eventTitle: {
     fontSize: 22,
