@@ -1,3 +1,4 @@
+// RegisterScreen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -17,8 +18,7 @@ import { Checkbox } from 'react-native-paper';
 import { auth, db } from '../firebase/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-
-
+import { MaterialIcons } from '@expo/vector-icons';
 
 const houseOptions = ['Red', 'Blue', 'Green', 'Yellow', 'Black'];
 
@@ -30,6 +30,7 @@ export default function RegisterScreen() {
   const [interests, setInterests] = useState({ boardGames: false, sports: false });
   const [loading, setLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!email || !password || !house) {
@@ -79,14 +80,19 @@ export default function RegisterScreen() {
         autoCapitalize="none"
       />
 
-      <TextInput
-        style={regStyles.input}
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Password"
-        secureTextEntry
-        autoCapitalize="none"
-      />
+      <View style={regStyles.passwordContainer}>
+        <TextInput
+          style={[regStyles.input, { flex: 1, marginBottom: 0 }]}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Password"
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={regStyles.eyeIcon}>
+          <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
 
       {Platform.OS === 'ios' ? (
         <>
@@ -203,6 +209,17 @@ const regStyles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
   },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    borderRadius: 12,
+    marginBottom: 20,
+    paddingRight: 10,
+  },
+  eyeIcon: {
+    padding: 10,
+  },
   pickerWrapper: {
     backgroundColor: '#eee',
     borderRadius: 12,
@@ -239,7 +256,7 @@ const regStyles = StyleSheet.create({
   },
   pickerContainer: {
     backgroundColor: '#fff',
-    height: 216, // Standard iOS picker height
+    height: 216,
     justifyContent: 'center',
     width: '100%',
   },

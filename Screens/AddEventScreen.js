@@ -127,7 +127,7 @@ export default function AddEventScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.heading}>➕ Add New Event</Text>
+      <Text style={styles.heading}>Add New Event</Text>
 
       <TextInput
         placeholder="Event Title"
@@ -232,7 +232,8 @@ function getHouseColor(houseName) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 19,
+    paddingBottom: 150,
     backgroundColor: '#f4f6f8',
     paddingTop: 60,
     flex: 1,

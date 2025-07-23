@@ -5,7 +5,9 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../firebase/firebase';
-import { doc, getDoc, updateDoc, increment, collection, onSnapshot, query, orderBy, deleteDoc } from 'firebase/firestore';
+import {
+  doc, getDoc, updateDoc, increment, collection, onSnapshot, query, orderBy, deleteDoc
+} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 
 function Card({ children }) {
@@ -25,6 +27,7 @@ export default function EventsScreen() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userHouse, setUserHouse] = useState(null);
+  const [showListView, setShowListView] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'events'), orderBy('date', 'asc'));
@@ -163,47 +166,72 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: userHouse ? getHouseColor(userHouse) : '#f7f7f7' }]}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
-        <Text style={styles.header}>📅 Upcoming Events</Text>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>📅 Upcoming Events</Text>
+          <TouchableOpacity onPress={() => setShowListView(!showListView)} style={styles.toggleButton}>
+            <Text style={styles.toggleButtonText}>{showListView ? '🗓' : '☰'}</Text>
+          </TouchableOpacity>
+        </View>
 
-        <Card>
-          <Calendar
-            onDayPress={handleDayPress}
-            markedDates={markedDates}
-            theme={{
-              selectedDayBackgroundColor: '#6C63FF',
-              todayTextColor: '#6C63FF',
-            }}
-          />
-        </Card>
+        {showListView ? (
+          filteredEvents.length === 0 ? (
+            <Card><Text>No events available</Text></Card>
+          ) : (
+            filteredEvents.map(event => (
+              <Card key={event.id}>
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Date:</Text> {event.date}</Text>
+                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Category:</Text> {event.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}</Text>
+                {event.description && <Text style={{ marginBottom: 12 }}>{event.description}</Text>}
+                <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(event.id, event.title)}>
+                  <Text style={styles.signUpButtonText}>Sign Up</Text>
+                </TouchableOpacity>
+                {isAdmin && (
+                  <TouchableOpacity style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]} onPress={() => deleteEvent(event.id, event.title)}>
+                    <Text style={styles.signUpButtonText}>🗑 Delete Event</Text>
+                  </TouchableOpacity>
+                )}
+              </Card>
+            ))
+          )
+        ) : (
+          <>
+            <Card>
+              <Calendar
+                onDayPress={handleDayPress}
+                markedDates={markedDates}
+                theme={{
+                  selectedDayBackgroundColor: '#6C63FF',
+                  todayTextColor: '#6C63FF',
+                }}
+              />
+            </Card>
 
-        {selectedEvent ? (
-          <Card>
-            <Text style={styles.eventTitle}>{selectedEvent.title}</Text>
-            <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Date:</Text> {selectedEvent.date}</Text>
-            <Text style={styles.eventInfo}>
-              <Text style={{ fontWeight: '600' }}>Category:</Text> {selectedEvent.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}
-            </Text>
-            {selectedEvent.description && <Text style={{ marginBottom: 12 }}>{selectedEvent.description}</Text>}
+            {selectedEvent ? (
+              <Card>
+                <Text style={styles.eventTitle}>{selectedEvent.title}</Text>
+                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Date:</Text> {selectedEvent.date}</Text>
+                <Text style={styles.eventInfo}>
+                  <Text style={{ fontWeight: '600' }}>Category:</Text> {selectedEvent.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}
+                </Text>
+                {selectedEvent.description && <Text style={{ marginBottom: 12 }}>{selectedEvent.description}</Text>}
 
-            <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(selectedEvent.id, selectedEvent.title)}>
-              <Text style={styles.signUpButtonText}>Sign Up</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(selectedEvent.id, selectedEvent.title)}>
+                  <Text style={styles.signUpButtonText}>Sign Up</Text>
+                </TouchableOpacity>
 
-            {isAdmin && (
-              <TouchableOpacity
-                style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]}
-                onPress={() => deleteEvent(selectedEvent.id, selectedEvent.title)}
-              >
-                <Text style={styles.signUpButtonText}>🗑 Delete Event</Text>
-              </TouchableOpacity>
-            )}
-          </Card>
-        ) : selectedDate ? (
-          <Card>
-            <Text>No event on {selectedDate}</Text>
-          </Card>
-        ) : null}
+                {isAdmin && (
+                  <TouchableOpacity style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]} onPress={() => deleteEvent(selectedEvent.id, selectedEvent.title)}>
+                    <Text style={styles.signUpButtonText}>🗑 Delete Event</Text>
+                  </TouchableOpacity>
+                )}
+              </Card>
+            ) : selectedDate ? (
+              <Card><Text>No event on {selectedDate}</Text></Card>
+            ) : null}
+          </>
+        )}
       </ScrollView>
 
       {isAdmin && (
@@ -244,6 +272,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  header: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    paddingLeft: 8,
+  },
+  toggleButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  toggleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -253,13 +307,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-    color: '#fff',
   },
   eventTitle: {
     fontSize: 22,
