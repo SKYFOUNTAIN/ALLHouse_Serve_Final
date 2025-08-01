@@ -32,11 +32,10 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Acknowledgements" component={AcknowledgementsScreen} />
     </Stack.Navigator>
   );
 }
+
 
 function EventsStack() {
   return (
@@ -69,6 +68,8 @@ function SettingsStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SettingsMain" component={SettingsScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Acknowledgements" component={AcknowledgementsScreen} />
     </Stack.Navigator>
   );
 }

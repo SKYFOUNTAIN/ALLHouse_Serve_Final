@@ -290,7 +290,7 @@ const regStyles = StyleSheet.create({
   button: {
     marginTop: 30,
     borderRadius: 8,
-    backgroundColor: '#d25c60',
+    backgroundColor: '#373434ff',
     paddingVertical: 10,
     alignItems: 'center',
   },
@@ -306,7 +306,7 @@ const regStyles = StyleSheet.create({
     color: '#000',
   },
   linkText: {
-    color: '#d25c60',
+    color: '#1815e1ff',
     fontWeight: 'bold',
   },
 });

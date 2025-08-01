@@ -164,13 +164,13 @@ const logStyles = StyleSheet.create({
     marginBottom: 20,
   },
   forgotPasswordText: {
-    color: '#d25c60',
+    color: '#7c7878ff',
     fontWeight: '600',
     fontSize: 14,
   },
   button: {
     borderRadius: 8,
-    backgroundColor: '#d25c60',
+    backgroundColor: '#373434ff',
     paddingVertical: 10,
     alignItems: 'center',
   },
@@ -186,7 +186,7 @@ const logStyles = StyleSheet.create({
     color: '#000',
   },
   linkText: {
-    color: '#d25c60',
+    color: '#1815e1ff',
     fontWeight: 'bold',
   },
 });

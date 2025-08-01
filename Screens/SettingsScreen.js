@@ -84,7 +84,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <TouchableOpacity
             style={styles.card}
-            onPress={() => navigation.navigate('Home', { screen: 'Profile' })}
+            onPress={() => navigation.navigate('Settings', { screen: 'Profile' })}
           >
             <View style={styles.iconCircle}>
               <Text style={styles.iconInitial}>
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>RESOURCES</Text>
           <TouchableOpacity
             style={styles.item}
-            onPress={() => navigation.navigate('Home', { screen: 'Acknowledgements' })}
+            onPress={() => navigation.navigate('Settings', { screen: 'Acknowledgements' })}
           >
             <FontAwesome
               name="book"

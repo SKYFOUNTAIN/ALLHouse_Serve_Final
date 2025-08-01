@@ -1,0 +1,80 @@
+import java.util.Properties
+
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+  }
+}
+
+dependencyResolutionManagement {
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+
+def getNodeExecutable() {
+  def localProperties = new Properties()
+  def localPropertiesFile = new File(rootDir, 'local.properties')
+  if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { stream ->
+      localProperties.load(stream)
+    }
+  }
+
+  def nodePath = localProperties.getProperty('nodeExecutableAndArgs')
+  if (nodePath == null || nodePath.trim().isEmpty()) {
+    nodePath = "/usr/local/bin/node"
+  }
+  println("✅ Using Node executable at: " + nodePath)
+  return nodePath
+}
+
+def runNodeCommand(String script) {
+  def nodeExecutable = getNodeExecutable()
+
+  try {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+      commandLine nodeExecutable, "--print", script
+      standardOutput = stdout
+      errorOutput = new ByteArrayOutputStream()
+      ignoreExitValue = true
+    }
+    return stdout.toString().trim()
+  } catch (Exception e) {
+    println("⚠️ Failed to run Node command: ${script}")
+    println("⚠️ Node executable tried: ${nodeExecutable}")
+    println("⚠️ Exception: ${e.message}")
+    return null
+  }
+}
+
+def reactNativeGradlePluginPath = runNodeCommand(
+  "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })"
+)
+if (reactNativeGradlePluginPath != null && !reactNativeGradlePluginPath.isEmpty()) {
+  def pluginDir = new File(reactNativeGradlePluginPath).parentFile.absolutePath
+  includeBuild(pluginDir)
+} else {
+  println("⚠️ Could not find @react-native/gradle-plugin.")
+}
+
+def expoAutolinkingPath = runNodeCommand(
+  "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })"
+)
+if (expoAutolinkingPath != null && !expoAutolinkingPath.isEmpty()) {
+  def expoPluginPath = new File(expoAutolinkingPath).parentFile.parent + "/android/expo-gradle-plugin"
+  if (new File(expoPluginPath).exists()) {
+    includeBuild(expoPluginPath)
+  } else {
+    println("⚠️ expo-gradle-plugin directory not found: " + expoPluginPath)
+  }
+} else {
+  println("⚠️ Could not resolve expo-modules-autolinking.")
+}
+
+rootProject.name = 'ALLHouse'
+include ':app'

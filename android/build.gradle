@@ -1,0 +1,45 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+    gradlePluginPortal()  // needed to resolve plugins
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle:7.0.4')                   // Android Gradle Plugin
+    classpath('com.facebook.react:react-native-gradle-plugin:0.71.8')  // React Native Gradle Plugin - use correct version
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10')      // Kotlin Gradle Plugin
+  }
+}
+
+def reactNativeAndroidDir = new File(
+  providers.exec {
+    workingDir(rootDir)
+    commandLine("/usr/local/bin/node", "--print", "require.resolve('react-native/package.json')")
+  }.standardOutput.asText.get().trim(),
+  "../android"
+)
+
+allprojects {
+  repositories {
+    maven {
+      // React Native binaries installed from npm
+      url(reactNativeAndroidDir)
+    }
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+}
+
+task testNodeExec {
+  doLast {
+    exec {
+      commandLine 'node', '--version'
+      standardOutput = System.out
+      errorOutput = System.err
+    }
+  }
+}
+
+// Apply React Native root project plugin
+apply plugin: "com.facebook.react.rootproject"
