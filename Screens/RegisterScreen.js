@@ -1,4 +1,3 @@
-// RegisterScreen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -68,173 +67,191 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView style={regStyles.container} keyboardShouldPersistTaps="handled">
-      <Text style={regStyles.title}>Join the House Today.</Text>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={styles.card}>
+        <Text style={styles.title}>Create Account</Text>
 
-      <TextInput
-        style={regStyles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email (School Email)"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <View style={regStyles.passwordContainer}>
         <TextInput
-          style={[regStyles.input, { flex: 1, marginBottom: 0 }]}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          secureTextEntry={!showPassword}
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email (School Email)"
+          keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={regStyles.eyeIcon}>
-          <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#666" />
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#999" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Select Your House</Text>
+        {Platform.OS === 'ios' ? (
+          <>
+            <TouchableOpacity
+              onPress={() => setShowPicker(true)}
+              style={styles.pickerButton}
+            >
+              <Text style={house ? styles.pickerText : styles.placeholderText}>
+                {house || 'Choose your house...'}
+              </Text>
+            </TouchableOpacity>
+
+            <Modal
+              visible={showPicker}
+              animationType="slide"
+              transparent={true}
+              onRequestClose={() => setShowPicker(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={house}
+                      onValueChange={(value) => {
+                        setHouse(value);
+                        setShowPicker(false);
+                      }}
+                      style={styles.iosPicker}
+                      itemStyle={styles.iosPickerItem}
+                      mode="dropdown"
+                    >
+                      <Picker.Item label="Choose your house..." value="" />
+                      {houseOptions.map((h) => (
+                        <Picker.Item key={h} label={h} value={h} />
+                      ))}
+                    </Picker>
+                  </View>
+                  <Pressable onPress={() => setShowPicker(false)} style={styles.doneButton}>
+                    <Text style={styles.doneText}>Done</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </Modal>
+          </>
+        ) : (
+          <View style={styles.androidPickerContainer}>
+            <Picker
+              selectedValue={house}
+              onValueChange={setHouse}
+              style={styles.androidPicker}
+              mode="dropdown"
+            >
+              <Picker.Item label="Choose your house..." value="" />
+              {houseOptions.map((h) => (
+                <Picker.Item key={h} label={h} value={h} />
+              ))}
+            </Picker>
+          </View>
+        )}
+
+        <Text style={styles.label}>What You Enjoy</Text>
+        <View style={styles.checkboxRow}>
+          <Checkbox
+            status={interests.boardGames ? 'checked' : 'unchecked'}
+            onPress={() =>
+              setInterests({ ...interests, boardGames: !interests.boardGames })
+            }
+          />
+          <Text style={styles.checkboxLabel}>♟️ Board Games</Text>
+        </View>
+        <View style={styles.checkboxRow}>
+          <Checkbox
+            status={interests.sports ? 'checked' : 'unchecked'}
+            onPress={() =>
+              setInterests({ ...interests, sports: !interests.sports })
+            }
+          />
+          <Text style={styles.checkboxLabel}>⚽ Sports</Text>
+        </View>
+
+        <TouchableOpacity onPress={handleRegister} style={styles.button}>
+          <Text style={styles.buttonText}>{loading ? 'Registering...' : 'Register'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.replace('Login')}>
+          <Text style={styles.footerText}>
+            Already have an account? <Text style={styles.link}>Login</Text>
+          </Text>
         </TouchableOpacity>
       </View>
-
-      {Platform.OS === 'ios' ? (
-        <>
-          <TouchableOpacity
-            onPress={() => setShowPicker(true)}
-            style={regStyles.pickerButton}
-          >
-            <Text style={house ? regStyles.pickerText : regStyles.placeholderText}>
-              {house || 'Select your house...'}
-            </Text>
-          </TouchableOpacity>
-
-          <Modal
-            visible={showPicker}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowPicker(false)}
-          >
-            <View style={regStyles.modalOverlay}>
-              <View style={regStyles.modalContent}>
-                <View style={regStyles.pickerContainer}>
-                  <Picker
-                    selectedValue={house}
-                    onValueChange={(value) => {
-                      setHouse(value);
-                      setShowPicker(false);
-                    }}
-                    style={regStyles.iosPicker}
-                    itemStyle={regStyles.iosPickerItem}
-                    mode="dropdown"
-                  >
-                    <Picker.Item label="Select your house..." value="" />
-                    {houseOptions.map((h) => (
-                      <Picker.Item key={h} label={h} value={h} />
-                    ))}
-                  </Picker>
-                </View>
-
-                <Pressable onPress={() => setShowPicker(false)} style={regStyles.doneButton}>
-                  <Text style={regStyles.doneText}>Done</Text>
-                </Pressable>
-              </View>
-            </View>
-          </Modal>
-        </>
-      ) : (
-        <View style={regStyles.pickerWrapper}>
-          <Picker
-            selectedValue={house}
-            onValueChange={setHouse}
-            style={regStyles.androidPicker}
-            mode="dropdown"
-          >
-            <Picker.Item label="Select your house..." value="" />
-            {houseOptions.map((h) => (
-              <Picker.Item key={h} label={h} value={h} />
-            ))}
-          </Picker>
-        </View>
-      )}
-
-      <Text style={{ marginTop: 10, fontWeight: '600' }}>What You Enjoy</Text>
-
-      <View style={regStyles.checkboxRow}>
-        <Checkbox
-          status={interests.boardGames ? 'checked' : 'unchecked'}
-          onPress={() =>
-            setInterests({ ...interests, boardGames: !interests.boardGames })
-          }
-        />
-        <Text style={regStyles.checkboxLabel}>♟️ Board Games</Text>
-      </View>
-
-      <View style={regStyles.checkboxRow}>
-        <Checkbox
-          status={interests.sports ? 'checked' : 'unchecked'}
-          onPress={() =>
-            setInterests({ ...interests, sports: !interests.sports })
-          }
-        />
-        <Text style={regStyles.checkboxLabel}>⚽ Sports</Text>
-      </View>
-
-      <TouchableOpacity onPress={handleRegister} style={regStyles.button}>
-        <Text style={regStyles.buttonText}>{loading ? 'Registering...' : 'Register'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.replace('Login')}>
-        <Text style={regStyles.bottomText}>
-          Already have an account? <Text style={regStyles.linkText}>Login</Text>
-        </Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const regStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f2f2f2',
+    paddingTop: 53,
+  },
+  card: {
+    margin: 20,
     backgroundColor: '#fff',
-    paddingHorizontal: 30,
-    paddingTop: 80,
+    borderRadius: 20,
+    padding: 25,
+    elevation: 3,
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    color: '#000',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 25,
   },
   input: {
-    backgroundColor: '#eee',
-    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
     padding: 15,
-    marginBottom: 20,
     fontSize: 16,
+    marginBottom: 15,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eee',
-    borderRadius: 12,
-    marginBottom: 20,
-    paddingRight: 10,
-  },
-  eyeIcon: {
-    padding: 10,
-  },
-  pickerWrapper: {
-    backgroundColor: '#eee',
-    borderRadius: 12,
-    marginBottom: 20,
-    height: 50,
-    justifyContent: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    marginBottom: 15,
     paddingHorizontal: 10,
   },
-  androidPicker: {
+  passwordInput: {
     flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
+  },
+  label: {
+    fontWeight: '600',
+    marginVertical: 8,
+    fontSize: 15,
+    color: '#444',
+  },
+  androidPickerContainer: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  androidPicker: {
+    height: 50,
+    width: '100%',
   },
   pickerButton: {
-    backgroundColor: '#eee',
-    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
     padding: 15,
+    borderRadius: 10,
     marginBottom: 20,
   },
   pickerText: {
@@ -267,7 +284,6 @@ const regStyles = StyleSheet.create({
     height: 216,
   },
   iosPickerItem: {
-    color: '#000',
     fontSize: 18,
   },
   doneButton: {
@@ -277,36 +293,36 @@ const regStyles = StyleSheet.create({
   doneText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#d25c60',
+    color: '#2b2bff',
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 6,
+    marginBottom: 10,
   },
   checkboxLabel: {
     fontSize: 16,
   },
   button: {
-    marginTop: 30,
-    borderRadius: 8,
-    backgroundColor: '#373434ff',
-    paddingVertical: 10,
+    backgroundColor: '#2b2bff',
+    borderRadius: 10,
+    paddingVertical: 13,
     alignItems: 'center',
+    marginTop: 20,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: '600',
+    fontSize: 16,
   },
-  bottomText: {
+  footerText: {
     textAlign: 'center',
     marginTop: 20,
+    color: '#333',
     fontSize: 14,
-    color: '#000',
   },
-  linkText: {
-    color: '#1815e1ff',
-    fontWeight: 'bold',
+  link: {
+    color: '#2b2bff',
+    fontWeight: '600',
   },
 });

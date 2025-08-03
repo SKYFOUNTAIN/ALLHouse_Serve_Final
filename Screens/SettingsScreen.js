@@ -67,27 +67,24 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: backgroundColor }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: insets.bottom + 70,
-          paddingTop: 60,
+          paddingTop: 40,
+          paddingBottom: insets.bottom + 60,
           paddingHorizontal: 20,
         }}
       >
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.header}>Settings</Text>
 
-        {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT</Text>
+        {/* ACCOUNT SECTION */}
+        <Section title="Account">
           <TouchableOpacity
             style={styles.card}
             onPress={() => navigation.navigate('Settings', { screen: 'Profile' })}
           >
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconInitial}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
                 {userData?.email ? getNameFromEmail(userData.email).charAt(0) : '?'}
               </Text>
             </View>
@@ -98,115 +95,124 @@ export default function SettingsScreen() {
               <Text style={styles.cardSubtitle}>{userData?.email || ''}</Text>
             </View>
           </TouchableOpacity>
-        </View>
+        </Section>
 
-        {/* Resources Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>RESOURCES</Text>
-          <TouchableOpacity
-            style={styles.item}
+        {/* RESOURCES SECTION */}
+        <Section title="Resources">
+          <SettingsItem
+            icon="book"
+            label="Acknowledgements"
             onPress={() => navigation.navigate('Settings', { screen: 'Acknowledgements' })}
-          >
-            <FontAwesome
-              name="book"
-              size={20}
-              color="#333"
-              style={styles.itemIcon}
-            />
-            <Text style={styles.itemText}>Acknowledgements</Text>
-          </TouchableOpacity>
-        </View>
+          />
+        </Section>
 
-        {/* Support Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SUPPORT</Text>
-          <TouchableOpacity
-            style={styles.item}
+        {/* SUPPORT SECTION */}
+        <Section title="Support">
+          <SettingsItem
+            icon="envelope"
+            label="Contact the team"
+            iconColor="#007AFF"
+            textColor="#007AFF"
             onPress={() =>
-              Alert.alert(
-                'Contact the team',
-                'Email: iresh_ramasamy@s2024.ssts.edu.sg',
-                [{ text: 'OK' }]
-              )
+              Alert.alert('Contact the team', 'Email: iresh_ramasamy@s2024.ssts.edu.sg', [
+                { text: 'OK' },
+              ])
             }
-          >
-            <FontAwesome
-              name="envelope"
-              size={20}
-              color="#007AFF"
-              style={styles.itemIcon}
-            />
-            <Text style={[styles.itemText, { color: '#007AFF' }]}>
-              Contact the team
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.item} onPress={handleSignOut}>
-            <FontAwesome
-              name="sign-out"
-              size={20}
-              color="red"
-              style={styles.itemIcon}
-            />
-            <Text style={[styles.itemText, { color: 'red' }]}>Sign out</Text>
-          </TouchableOpacity>
-        </View>
+          />
+          <SettingsItem
+            icon="sign-out"
+            label="Sign out"
+            iconColor="red"
+            textColor="red"
+            onPress={handleSignOut}
+          />
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// --- REUSABLE COMPONENTS ---
+const Section = ({ title, children }) => (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title.toUpperCase()}</Text>
+      <View style={styles.sectionLine} />
+    </View>
+    {children}
+  </View>
+);
+
+const SettingsItem = ({ icon, label, onPress, iconColor = '#333', textColor = '#000' }) => (
+  <TouchableOpacity style={styles.item} onPress={onPress}>
+    <FontAwesome name={icon} size={20} color={iconColor} style={styles.itemIcon} />
+    <Text style={[styles.itemText, { color: textColor }]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+// --- STYLES ---
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 20,
+  header: {
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 25,
+    color: '#1c1c1e',
   },
   section: {
     marginBottom: 30,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 10,
+    color: '#555',
+    marginRight: 10,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
+    backgroundColor: '#ffffff',
     borderRadius: 12,
-    elevation: 1,
-    shadowColor: '#ccc',
+    padding: 15,
+    elevation: 2,
+    shadowColor: '#aaa',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  iconCircle: {
+  avatar: {
     backgroundColor: '#007AFF',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
   },
-  iconInitial: {
-    color: 'white',
-    fontWeight: 'bold',
+  avatarText: {
+    color: '#fff',
     fontSize: 20,
+    fontWeight: 'bold',
   },
   cardTitle: {
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: 'bold',
   },
   cardSubtitle: {
-    color: '#666',
     fontSize: 13,
+    color: '#777',
   },
   item: {
     flexDirection: 'row',

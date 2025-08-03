@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { FontAwesome, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const houseColors = {
   Red: '#e74c3c',
@@ -23,7 +26,6 @@ export default function AcknowledgementsScreen() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) return;
-
       try {
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
@@ -38,129 +40,121 @@ export default function AcknowledgementsScreen() {
     return () => unsubscribe();
   }, []);
 
-  const backgroundColor = houseColors[userData?.house] || '#F8F9FA';
+  const backgroundColor = houseColors[userData?.house] || '#F2F4F7';
 
   const teamMembers = [
     {
       name: 'Iresh Ramasamy',
       role: 'Lead Developer of ALLHouse (iOS/Android)',
       class: 'Class of 2027',
-      icon: <MaterialIcons name="code" size={20} color="#D92D20" />,
+      icon: <MaterialIcons name="code" size={20} color="#fff" />,
     },
     {
       name: 'Evan Tan Jing Kai',
       role: "ALLHouse's Design and Communications IC",
       class: 'Class of 2027',
-      icon: <FontAwesome name="apple" size={20} color="#D92D20" />,
+      icon: <FontAwesome name="apple" size={20} color="#fff" />,
     },
     {
       name: 'Christopher Richard Mills',
       role: "ALLHouse's Marketing and Design IC",
       class: 'Class of 2027',
-      icon: <MaterialCommunityIcons name="palette" size={20} color="#D92D20" />,
+      icon: <MaterialCommunityIcons name="palette" size={20} color="#fff" />,
     },
     {
       name: 'Thiha Linn Tun',
       role: "ALLHouse's Marketing and Design IC",
       class: 'Class of 2027',
-      icon: <MaterialCommunityIcons name="bullhorn" size={20} color="#D92D20" />,
+      icon: <MaterialCommunityIcons name="bullhorn" size={20} color="#fff" />,
     },
   ];
 
   return (
-    <SafeAreaView style={[ackStyles.container, { backgroundColor }]}>
-      <ScrollView style={[ackStyles.scrollView, { paddingBottom: insets.bottom + 70, paddingTop: 120 }]} showsVerticalScrollIndicator={false}>
-        <View style={ackStyles.card}>
-          <View style={ackStyles.sectionHeader}>
-            <MaterialCommunityIcons name="account-group" size={20} color="#D92D20" />
-            <Text style={ackStyles.sectionTitle}>OUR TEAM</Text>
-          </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor }}>
+      <LinearGradient
+        colors={['#FF6B6B', '#FFD93D']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.banner}
+      >
+        <Text style={styles.bannerText}>Acknowledgements</Text>
+      </LinearGradient>
 
-          {teamMembers.map((member, index) => (
-            <View key={index}>
-              <View style={ackStyles.memberRow}>
-                <View style={ackStyles.memberIcon}>{member.icon}</View>
-                <View style={ackStyles.memberInfo}>
-                  <Text style={ackStyles.memberName}>{member.name}</Text>
-                  <Text style={ackStyles.memberRole}>{member.role}</Text>
-                  <Text style={ackStyles.memberClass}>{member.class}</Text>
-                </View>
-              </View>
-              {index !== teamMembers.length - 1 && <View style={ackStyles.divider} />}
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {teamMembers.map((member, index) => (
+          <View key={index} style={styles.card}>
+            <View style={styles.avatar}>{member.icon}</View>
+            <View style={styles.textContent}>
+              <Text style={styles.name}>{member.name}</Text>
+              <Text style={styles.role}>{member.role}</Text>
+              <Text style={styles.classText}>{member.class}</Text>
             </View>
-          ))}
-        </View>
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const ackStyles = StyleSheet.create({
-  container: {
-    flex: 1,
+const styles = StyleSheet.create({
+  banner: {
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    borderBottomRightRadius: 40,
+    borderBottomLeftRadius: 40,
+    alignItems: 'center',
   },
-  scrollView: {
+  bannerText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  scroll: {
+    paddingTop: 30,
     paddingHorizontal: 20,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 5,
   },
-  sectionTitle: {
-    marginLeft: 8,
-    color: '#D92D20',
-    fontWeight: '700',
-    fontSize: 14,
-    textTransform: 'uppercase',
-  },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-  },
-  memberIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FEE4E2',
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#D92D20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    marginTop: 2,
+    marginRight: 16,
   },
-  memberInfo: {
+  textContent: {
     flex: 1,
   },
-  memberName: {
+  name: {
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 15,
-    color: '#101828',
+    color: '#1D2939',
   },
-  memberRole: {
+  role: {
     fontSize: 14,
-    color: '#667085',
+    color: '#475467',
     marginTop: 2,
   },
-  memberClass: {
-    fontSize: 13,
+  classText: {
+    fontSize: 12,
     color: '#98A2B3',
     marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#EAECF0',
-    marginVertical: 8,
   },
 });

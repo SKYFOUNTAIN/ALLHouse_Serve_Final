@@ -27,7 +27,7 @@ import RedLogo from './assets/RedLogo.png';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Home stack: includes Profile and Acknowledgements
+
 function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

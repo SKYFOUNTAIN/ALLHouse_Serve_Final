@@ -1,4 +1,3 @@
-// LoginScreen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -6,9 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Alert,
   StyleSheet,
+  Alert,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase/firebase';
@@ -85,108 +84,138 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={logStyles.container}>
-      <Text style={logStyles.title}>The House You Need.</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.header}>Welcome to</Text>
+        <Text style={styles.title}>ALLHouse</Text>
 
-      <TextInput
-        style={logStyles.input}
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <View style={logStyles.passwordContainer}>
         <TextInput
-          style={[logStyles.input, { flex: 1, marginBottom: 0 }]}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          secureTextEntry={!showPassword}
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={logStyles.eyeIcon}>
-          <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#666" />
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <MaterialIcons
+              name={showPassword ? 'visibility' : 'visibility-off'}
+              size={24}
+              color="#999"
+            />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={handleForgotPassword}>
+          <Text style={styles.forgot}>Forgot Password?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.replace('Register')}>
+          <Text style={styles.footerText}>
+            Don't have an account?{' '}
+            <Text style={styles.link}>Sign up</Text>
+          </Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity onPress={handleForgotPassword} style={logStyles.forgotPasswordButton}>
-        <Text style={logStyles.forgotPasswordText}>Forgot Password?</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={handleLogin} style={logStyles.button} disabled={loading}>
-        <Text style={logStyles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.replace('Register')}>
-        <Text style={logStyles.bottomText}>
-          Don't have an account? <Text style={logStyles.linkText}>Sign up</Text>
-        </Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const logStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
+    backgroundColor: '#f7f7f7',
     justifyContent: 'center',
-    paddingHorizontal: 30,
+    padding: 20,
+  },
+  card: {
     backgroundColor: '#fff',
+    padding: 25,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  header: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 5,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    color: '#000',
+    fontSize: 30,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#222',
+    marginBottom: 30,
   },
   input: {
-    backgroundColor: '#eee',
-    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
     padding: 15,
-    marginBottom: 20,
+    borderRadius: 10,
     fontSize: 16,
+    marginBottom: 15,
   },
   passwordContainer: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eee',
-    borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 10,
     paddingRight: 10,
   },
-  eyeIcon: {
-    padding: 10,
-  },
-  forgotPasswordButton: {
+  forgot: {
     alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: '#7c7878ff',
-    fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
+    color: '#777',
+    marginBottom: 25,
   },
   button: {
-    borderRadius: 8,
-    backgroundColor: '#373434ff',
-    paddingVertical: 10,
+    backgroundColor: '#2b2bff',
+    borderRadius: 10,
+    paddingVertical: 13,
     alignItems: 'center',
+    marginBottom: 20,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: '600',
+    fontSize: 16,
   },
-  bottomText: {
+  footerText: {
     textAlign: 'center',
-    marginTop: 20,
+    color: '#333',
     fontSize: 14,
-    color: '#000',
   },
-  linkText: {
-    color: '#1815e1ff',
-    fontWeight: 'bold',
+  link: {
+    color: '#2b2bff',
+    fontWeight: '600',
   },
 });
