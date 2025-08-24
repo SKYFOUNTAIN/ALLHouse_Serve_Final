@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
@@ -33,7 +34,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password || !house) {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
 
@@ -67,15 +68,18 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.card}>
-        <Text style={styles.title}>Create Account</Text>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <View style={styles.topSection}>
+        <Text style={styles.header}>Join ALLHouse</Text>
+        <Text style={styles.subHeader}>Create your account to get started</Text>
+      </View>
 
+      <View style={styles.card}>
         <TextInput
           style={styles.input}
           value={email}
           onChangeText={setEmail}
-          placeholder="Email (School Email)"
+          placeholder="School Email"
           keyboardType="email-address"
           autoCapitalize="none"
         />
@@ -90,7 +94,11 @@ export default function RegisterScreen() {
             autoCapitalize="none"
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={24} color="#999" />
+            <MaterialIcons
+              name={showPassword ? 'visibility' : 'visibility-off'}
+              size={24}
+              color="#999"
+            />
           </TouchableOpacity>
         </View>
 
@@ -114,23 +122,19 @@ export default function RegisterScreen() {
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={house}
-                      onValueChange={(value) => {
-                        setHouse(value);
-                        setShowPicker(false);
-                      }}
-                      style={styles.iosPicker}
-                      itemStyle={styles.iosPickerItem}
-                      mode="dropdown"
-                    >
-                      <Picker.Item label="Choose your house..." value="" />
-                      {houseOptions.map((h) => (
-                        <Picker.Item key={h} label={h} value={h} />
-                      ))}
-                    </Picker>
-                  </View>
+                  <Picker
+                    selectedValue={house}
+                    onValueChange={(value) => {
+                      setHouse(value);
+                      setShowPicker(false);
+                    }}
+                    style={styles.iosPicker}
+                  >
+                    <Picker.Item label="Choose your house..." value="" />
+                    {houseOptions.map((h) => (
+                      <Picker.Item key={h} label={h} value={h} />
+                    ))}
+                  </Picker>
                   <Pressable onPress={() => setShowPicker(false)} style={styles.doneButton}>
                     <Text style={styles.doneText}>Done</Text>
                   </Pressable>
@@ -174,15 +178,20 @@ export default function RegisterScreen() {
           <Text style={styles.checkboxLabel}>⚽ Sports</Text>
         </View>
 
-        <TouchableOpacity onPress={handleRegister} style={styles.button}>
+        <TouchableOpacity
+          onPress={handleRegister}
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          disabled={loading}
+        >
           <Text style={styles.buttonText}>{loading ? 'Registering...' : 'Register'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.replace('Login')}>
-          <Text style={styles.footerText}>
-            Already have an account? <Text style={styles.link}>Login</Text>
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
+            <Text style={styles.link}>Login</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -190,31 +199,44 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-    paddingTop: 53,
+    flexGrow: 1,
+    backgroundColor: '#f7f7f7',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  topSection: {
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  logo: {
+    width: 90,
+    height: 90,
+    marginBottom: 15,
+    borderRadius: 20,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 5,
+  },
+  subHeader: {
+    fontSize: 14,
+    color: '#555',
   },
   card: {
-    margin: 20,
     backgroundColor: '#fff',
-    borderRadius: 20,
     padding: 25,
-    elevation: 3,
+    borderRadius: 20,
+    elevation: 4,
     shadowColor: '#aaa',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 6,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 25,
   },
   input: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 15,
     fontSize: 16,
     marginBottom: 15,
@@ -223,7 +245,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 15,
     paddingHorizontal: 10,
   },
@@ -240,7 +262,7 @@ const styles = StyleSheet.create({
   },
   androidPickerContainer: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 20,
     overflow: 'hidden',
   },
@@ -251,7 +273,7 @@ const styles = StyleSheet.create({
   pickerButton: {
     backgroundColor: '#f0f0f0',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 20,
   },
   pickerText: {
@@ -271,20 +293,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingBottom: 20,
   },
-  pickerContainer: {
-    backgroundColor: '#fff',
-    height: 216,
-    justifyContent: 'center',
-    width: '100%',
-  },
   iosPicker: {
     backgroundColor: '#fff',
     color: '#000',
     width: '100%',
     height: 216,
-  },
-  iosPickerItem: {
-    fontSize: 18,
   },
   doneButton: {
     padding: 10,
@@ -305,24 +318,32 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#2b2bff',
-    borderRadius: 10,
-    paddingVertical: 13,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 20,
+    shadowColor: '#2b2bff',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
-  footerText: {
-    textAlign: 'center',
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginTop: 20,
-    color: '#333',
+  },
+  footerText: {
     fontSize: 14,
+    color: '#333',
   },
   link: {
     color: '#2b2bff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });

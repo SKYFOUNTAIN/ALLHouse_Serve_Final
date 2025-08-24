@@ -24,15 +24,13 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Missing Information', 'Please enter both your email and password to continue.');
+      Alert.alert('Missing Information', 'Please enter both your email and password.');
       return;
     }
-
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       const docRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(docRef);
 
@@ -46,17 +44,12 @@ export default function LoginScreen() {
           wins: 0,
         });
       }
-
       navigation.replace('MainTabs');
     } catch (error) {
       let message = 'Login failed. Wrong email or password.';
-      if (error.code === 'auth/user-not-found') {
-        message = 'No account found with this email. Please register first.';
-      } else if (error.code === 'auth/wrong-password') {
-        message = 'Incorrect email or password. Please try again.';
-      } else if (error.code === 'auth/invalid-email') {
-        message = 'Invalid email format. Please check your email address.';
-      }
+      if (error.code === 'auth/user-not-found') message = 'No account found. Please register.';
+      else if (error.code === 'auth/wrong-password') message = 'Incorrect password. Try again.';
+      else if (error.code === 'auth/invalid-email') message = 'Invalid email address.';
       Alert.alert('Login Error', message);
     }
     setLoading(false);
@@ -64,31 +57,27 @@ export default function LoginScreen() {
 
   const handleForgotPassword = () => {
     if (!email) {
-      Alert.alert('Enter Email', 'Please enter your email address first to reset your password.');
+      Alert.alert('Enter Email', 'Please enter your email first.');
       return;
     }
-
     sendPasswordResetEmail(auth, email)
-      .then(() => {
-        Alert.alert('Password Reset', `A password reset email has been sent to ${email}.`);
-      })
+      .then(() => Alert.alert('Password Reset', `Email sent to ${email}.`))
       .catch((error) => {
         let message = 'Failed to send password reset email.';
-        if (error.code === 'auth/user-not-found') {
-          message = 'No account found with this email.';
-        } else if (error.code === 'auth/invalid-email') {
-          message = 'Invalid email address format.';
-        }
+        if (error.code === 'auth/user-not-found') message = 'No account found with this email.';
+        else if (error.code === 'auth/invalid-email') message = 'Invalid email address.';
         Alert.alert('Error', message);
       });
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.header}>Welcome to</Text>
-        <Text style={styles.title}>ALLHouse</Text>
+      <View style={styles.topSection}>
+        <Text style={styles.header}>Welcome</Text>
+        <Text style={styles.subHeader}>Login to continue to ALLHouse</Text>
+      </View>
 
+      <View style={styles.card}>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -128,12 +117,12 @@ export default function LoginScreen() {
           <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.replace('Register')}>
-          <Text style={styles.footerText}>
-            Don't have an account?{' '}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.replace('Register')}>
             <Text style={styles.link}>Sign up</Text>
-          </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -146,6 +135,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  topSection: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 15,
+    borderRadius: 20,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 5,
+  },
+  subHeader: {
+    fontSize: 14,
+    color: '#555',
+  },
   card: {
     backgroundColor: '#fff',
     padding: 25,
@@ -156,29 +165,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
   },
-  header: {
-    fontSize: 16,
-    color: '#555',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#222',
-    marginBottom: 30,
-  },
   input: {
     backgroundColor: '#f0f0f0',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     fontSize: 16,
     marginBottom: 15,
   },
   passwordContainer: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
     flexDirection: 'row',
@@ -195,27 +191,35 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     fontSize: 13,
     color: '#777',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   button: {
     backgroundColor: '#2b2bff',
-    borderRadius: 10,
-    paddingVertical: 13,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
+    shadowColor: '#2b2bff',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
   footerText: {
-    textAlign: 'center',
     color: '#333',
     fontSize: 14,
   },
   link: {
     color: '#2b2bff',
     fontWeight: '600',
+    fontSize: 14,
   },
 });

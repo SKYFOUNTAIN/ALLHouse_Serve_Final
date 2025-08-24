@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, Alert, SafeAreaView, StyleSheet
+  View, Text, TouchableOpacity, ScrollView, SafeAreaView, StyleSheet, Image, Linking, Alert
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,13 +9,10 @@ import {
   doc, getDoc, updateDoc, increment, collection, onSnapshot, query, orderBy, deleteDoc
 } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+import { Video } from 'expo-av';
 
 function Card({ children }) {
-  return (
-    <View style={styles.card}>
-      {children}
-    </View>
-  );
+  return <View style={styles.card}>{children}</View>;
 }
 
 export default function EventsScreen() {
@@ -24,45 +21,32 @@ export default function EventsScreen() {
 
   const [events, setEvents] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [expandedEventId, setExpandedEventId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userHouse, setUserHouse] = useState(null);
   const [showListView, setShowListView] = useState(false);
+  const [visibleDetails, setVisibleDetails] = useState({});
 
   useEffect(() => {
     const q = query(collection(db, 'events'), orderBy('date', 'asc'));
     const unsubscribe = onSnapshot(q, snapshot => {
       const evs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setEvents(evs);
-    }, (error) => {
-      console.error('Error loading events:', error);
-    });
-
+    }, error => console.error(error));
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) {
-      setIsAdmin(false);
-      setUserHouse(null);
-      return;
-    }
-
-    getDoc(doc(db, 'users', user.uid)).then(docSnap => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setIsAdmin(data.isAdmin === true);
-        setUserHouse(data.house || null);
-      } else {
-        setIsAdmin(false);
-        setUserHouse(null);
-      }
-    }).catch(err => {
-      console.error('Failed to check admin:', err);
-      setIsAdmin(false);
-      setUserHouse(null);
-    });
+    if (!user) return;
+    getDoc(doc(db, 'users', user.uid))
+      .then(docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setIsAdmin(data.isAdmin === true);
+          setUserHouse(data.house || null);
+        }
+      }).catch(err => console.error(err));
   }, []);
 
   const filteredEvents = events.filter(ev => {
@@ -71,16 +55,8 @@ export default function EventsScreen() {
     return ev.houses.includes(userHouse);
   });
 
-  const handleDayPress = (day) => {
-    const foundEvent = filteredEvents.find(ev => ev.date === day.dateString);
-    if (foundEvent) {
-      setSelectedEventId(foundEvent.id);
-      setSelectedDate(day.dateString);
-    } else {
-      setSelectedEventId(null);
-      setSelectedDate(day.dateString);
-    }
-  };
+  const toggleExpandEvent = (id) => setExpandedEventId(prev => prev === id ? null : id);
+  const handleDayPress = (day) => { setSelectedDate(day.dateString); setExpandedEventId(null); };
 
   const signUpForEvent = async (eventId, eventTitle) => {
     Alert.alert('Confirm Sign Up', `Sign up for "${eventTitle}"?`, [
@@ -109,23 +85,9 @@ export default function EventsScreen() {
               },
               signUpCount: increment(1),
             });
-
-            fetch('https://script.google.com/macros/s/AKfycbwFvi1qgPzwr7gcZDT2HJkqO1oUseum0wIUAH_dFqs8gxusi-9uGTAVN2JOI1viLHHhOg/exec', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                eventTitle,
-                house: user.house || '',
-                name: user.name || 'Unknown',
-                email: user.email || '',
-                age: user.age || '',
-                signedUpAt: new Date().toISOString(),
-              }),
-            }).catch(err => console.error('Failed to send to Google Sheets:', err));
-
             Alert.alert('Signed Up!', `You are signed up for "${eventTitle}"`);
           } catch (error) {
-            console.error('Failed to sign up:', error);
+            console.error(error);
             Alert.alert('Error', 'Could not sign up. Please try again later.');
           }
         },
@@ -142,10 +104,10 @@ export default function EventsScreen() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'events', eventId));
-            setSelectedEventId(null);
+            if (expandedEventId === eventId) setExpandedEventId(null);
             Alert.alert('Deleted', `"${title}" has been deleted.`);
           } catch (error) {
-            console.error('Delete failed:', error);
+            console.error(error);
             Alert.alert('Error', 'Could not delete event. Try again.');
           }
         },
@@ -154,15 +116,85 @@ export default function EventsScreen() {
   };
 
   const markedDates = filteredEvents.reduce((acc, event) => {
-    acc[event.date] = {
-      marked: true,
-      dotColor: event.color || 'blue',
-      selected: selectedDate === event.date,
-    };
+    acc[event.date] = { marked: true, dotColor: event.color || 'blue', selected: selectedDate === event.date };
     return acc;
   }, {});
 
-  const selectedEvent = selectedEventId ? filteredEvents.find(ev => ev.id === selectedEventId) : null;
+  const eventsToShow = selectedDate
+    ? filteredEvents.filter(ev => ev.date === selectedDate)
+    : [];
+
+  const renderDetails = (event) => {
+    const isVisible = visibleDetails[event.id];
+    if (!isVisible) {
+      return (
+        <TouchableOpacity
+          style={styles.showMediaButton}
+          onPress={() => setVisibleDetails(prev => ({ ...prev, [event.id]: true }))}
+        >
+          <Text style={styles.showMediaButtonText}>Details</Text>
+        </TouchableOpacity>
+      );
+    }
+    return (
+      <View style={{ marginBottom: 12 }}>
+        {event.description ? <Text style={{ marginBottom: 12 }}>{event.description}</Text> : null}
+        {event.media?.image ? (
+          <Image
+            source={{ uri: event.media.image }}
+            style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }}
+            resizeMode="cover"
+          />
+        ) : null}
+        {event.media?.video ? (
+          <Video
+            source={{ uri: event.media.video }}
+            style={{ width: '100%', height: 220, borderRadius: 12, marginBottom: 12 }}
+            useNativeControls
+            resizeMode="contain"
+            shouldPlay={false}
+            isLooping={false}
+          />
+        ) : null}
+        {event.media?.link ? (
+          <TouchableOpacity onPress={() => Linking.openURL(event.media.link)}>
+            <Text style={{ color: '#3498db', marginBottom: 12 }}>🔗 Open Event Link</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderEventCard = (event) => {
+    const isExpanded = expandedEventId === event.id;
+    return (
+      <Card key={event.id}>
+        <TouchableOpacity onPress={() => toggleExpandEvent(event.id)} style={styles.eventHeaderRow}>
+          <Text style={styles.eventTitleSmall}>{event.title}</Text>
+          <Text style={styles.eventDate}>{event.date}</Text>
+        </TouchableOpacity>
+        {isExpanded && (
+          <View style={{ marginTop: 8 }}>
+            {renderDetails(event)}
+            <Text style={styles.eventInfo}>
+              <Text style={{ fontWeight: '600' }}>Category:</Text> {event.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}
+            </Text>
+            <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(event.id, event.title)}>
+              <Text style={styles.signUpButtonText}>Sign Up</Text>
+            </TouchableOpacity>
+            {isAdmin && (
+              <TouchableOpacity
+                style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]}
+                onPress={() => deleteEvent(event.id, event.title)}
+              >
+                <Text style={styles.signUpButtonText}>Delete Event</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: userHouse ? getHouseColor(userHouse) : '#f7f7f7' }]}>
@@ -174,81 +206,29 @@ export default function EventsScreen() {
           </TouchableOpacity>
         </View>
 
-        {showListView ? (
-          filteredEvents.length === 0 ? (
-            <Card><Text>No events available</Text></Card>
-          ) : (
-            filteredEvents.map(event => (
-              <Card key={event.id}>
-                <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Date:</Text> {event.date}</Text>
-                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Category:</Text> {event.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}</Text>
-                {event.description && <Text style={{ marginBottom: 12 }}>{event.description}</Text>}
-                <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(event.id, event.title)}>
-                  <Text style={styles.signUpButtonText}>Sign Up</Text>
-                </TouchableOpacity>
-                {isAdmin && (
-                  <TouchableOpacity style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]} onPress={() => deleteEvent(event.id, event.title)}>
-                    <Text style={styles.signUpButtonText}>🗑 Delete Event</Text>
-                  </TouchableOpacity>
-                )}
-              </Card>
-            ))
-          )
-        ) : (
-          <>
+        {showListView
+          ? filteredEvents.length === 0 ? <Card><Text>No events available</Text></Card> : filteredEvents.map(renderEventCard)
+          : <>
             <Card>
               <Calendar
                 onDayPress={handleDayPress}
                 markedDates={markedDates}
-                theme={{
-                  selectedDayBackgroundColor: '#6C63FF',
-                  todayTextColor: '#6C63FF',
-                }}
+                theme={{ selectedDayBackgroundColor: '#6C63FF', todayTextColor: '#6C63FF' }}
               />
             </Card>
-
-            {selectedEvent ? (
-              <Card>
-                <Text style={styles.eventTitle}>{selectedEvent.title}</Text>
-                <Text style={styles.eventInfo}><Text style={{ fontWeight: '600' }}>Date:</Text> {selectedEvent.date}</Text>
-                <Text style={styles.eventInfo}>
-                  <Text style={{ fontWeight: '600' }}>Category:</Text> {selectedEvent.category === 'boardGames' ? '♟️ Board Games' : '⚽ Sports'}
-                </Text>
-                {selectedEvent.description && <Text style={{ marginBottom: 12 }}>{selectedEvent.description}</Text>}
-
-                <TouchableOpacity style={styles.signUpButton} onPress={() => signUpForEvent(selectedEvent.id, selectedEvent.title)}>
-                  <Text style={styles.signUpButtonText}>Sign Up</Text>
-                </TouchableOpacity>
-
-                {isAdmin && (
-                  <TouchableOpacity style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]} onPress={() => deleteEvent(selectedEvent.id, selectedEvent.title)}>
-                    <Text style={styles.signUpButtonText}>🗑 Delete Event</Text>
-                  </TouchableOpacity>
-                )}
-              </Card>
-            ) : selectedDate ? (
-              <Card><Text>No event on {selectedDate}</Text></Card>
-            ) : null}
+            {selectedDate && eventsToShow.length === 0 && <Card><Text>No events on {selectedDate}</Text></Card>}
+            {eventsToShow.map(renderEventCard)}
           </>
-        )}
+        }
       </ScrollView>
 
       {isAdmin && (
         <>
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={() => navigation.navigate('AddEventScreen')}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.floatingButton} onPress={() => navigation.navigate('AddEventScreen')} activeOpacity={0.7}>
             <Text style={styles.floatingButtonText}>＋</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.floatingButton, { right: 100, backgroundColor: '#2ecc71' }]}
-            onPress={() => navigation.navigate('AdminEventListScreen')}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={[styles.floatingButton, { right: 100, backgroundColor: '#2ecc71' }]} onPress={() => navigation.navigate('AdminEventListScreen')} activeOpacity={0.7}>
             <Text style={styles.floatingButtonText}>👁</Text>
           </TouchableOpacity>
         </>
@@ -269,85 +249,20 @@ function getHouseColor(houseName) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  header: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-    paddingLeft: 8,
-  },
-  toggleButton: {
-    backgroundColor: '#fff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  toggleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  eventTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  eventInfo: {
-    marginBottom: 4,
-  },
-  signUpButton: {
-    backgroundColor: '#6C63FF',
-    padding: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  signUpButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: '#6C63FF',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  floatingButtonText: {
-    color: '#fff',
-    fontSize: 36,
-    lineHeight: 36,
-    textAlign: 'center',
-    marginBottom: 2,
-  },
+  container: { flex: 1 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 8 },
+  header: { fontSize: 26, fontWeight: 'bold', color: '#fff', paddingLeft: 8 },
+  toggleButton: { backgroundColor: '#fff', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ccc' },
+  toggleButtonText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  eventHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  eventTitleSmall: { fontSize: 18, fontWeight: '600' },
+  eventDate: { fontSize: 16, color: '#555' },
+  eventInfo: { marginBottom: 4 },
+  signUpButton: { backgroundColor: '#6C63FF', padding: 10, borderRadius: 12, alignItems: 'center', marginTop: 6 },
+  signUpButtonText: { color: '#fff', fontWeight: '600' },
+  floatingButton: { position: 'absolute', bottom: 30, right: 20, backgroundColor: '#6C63FF', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+  floatingButtonText: { color: '#fff', fontSize: 36, lineHeight: 36, textAlign: 'center', marginBottom: 2 },
+  showMediaButton: { backgroundColor: '#3498db', padding: 10, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
+  showMediaButtonText: { color: '#fff', fontWeight: '600' },
 });

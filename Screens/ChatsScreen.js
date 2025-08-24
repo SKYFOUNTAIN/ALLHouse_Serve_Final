@@ -1,4 +1,3 @@
-// Entire ChatsScreen.js with separated tab buttons and no container box
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, SafeAreaView, StyleSheet,
@@ -24,7 +23,11 @@ export default function ChatsScreen() {
   const [selectedMsg, setSelectedMsg] = useState(null);
 
   const flatListRef = useRef(null);
+  const pinnedIndexRef = useRef(0);
 
+  const [userData, setUserData] = useState({});
+
+  // Load current user
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -34,10 +37,12 @@ export default function ChatsScreen() {
         const data = docSnap.data();
         setIsAdmin(data.isAdmin === true);
         setUserHouse(data.house || null);
+        setUserData({ ...data, email: user.email });
       }
     });
   }, []);
 
+  // Load messages
   useEffect(() => {
     if (tab === 'general') {
       const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
@@ -54,15 +59,17 @@ export default function ChatsScreen() {
     }
   }, [tab, userHouse]);
 
-  useEffect(() => {
-    if (flatListRef.current && messages.length > 0) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    }
-  }, [messages]);
+  const getNameFromEmail = (email) => {
+    if (!email) return 'Admin';
+    const raw = email.split('@')[0].replace(/_/g, ' ');
+    return raw
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const postMessage = async () => {
     if (!newMessage.trim()) return Alert.alert('Empty message');
-
     setLoading(true);
     const user = auth.currentUser;
     if (!user) return;
@@ -70,7 +77,7 @@ export default function ChatsScreen() {
     const msgData = {
       text: newMessage.trim(),
       createdAt: serverTimestamp(),
-      author: user.email || 'Admin',
+      author: getNameFromEmail(user.email),
       pinned: false
     };
 
@@ -118,16 +125,25 @@ export default function ChatsScreen() {
     return date.toLocaleString();
   };
 
-  const pinnedMessages = messages
-    .filter(m => m.pinned)
-    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  const unpinnedMessages = messages
-    .filter(m => !m.pinned)
-    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  const combinedMessages = [...pinnedMessages, ...unpinnedMessages];
+  const pinnedMessages = messages.filter(m => m.pinned);
+
+  const scrollToPinned = () => {
+    if (!flatListRef.current || pinnedMessages.length === 0) return;
+    const index = messages.findIndex(msg => msg.id === pinnedMessages[pinnedIndexRef.current].id);
+    if (index !== -1) {
+      flatListRef.current.scrollToIndex({ index, animated: true });
+      pinnedIndexRef.current = (pinnedIndexRef.current + 1) % pinnedMessages.length;
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  };
 
   const renderItem = ({ item }) => (
-    <View style={styles.announcementCard}>
+    <View style={[styles.announcementCard, item.pinned && styles.pinnedCard]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={styles.announcementText}>{item.pinned ? '📌 ' : ''}{item.text}</Text>
         {isAdmin && (
@@ -178,15 +194,23 @@ export default function ChatsScreen() {
         <FlatList
           ref={flatListRef}
           style={styles.scroll}
-          contentContainerStyle={{ paddingBottom: 80 }}
-          data={combinedMessages}
+          contentContainerStyle={{ paddingBottom: 140 }}
+          data={messages}
           keyExtractor={item => item.id}
           renderItem={renderItem}
           inverted
           keyboardShouldPersistTaps="handled"
+          getItemLayout={(data, index) => ({ length: 100, offset: 100 * index, index })}
         />
 
-        {((tab === 'general' && isAdmin) || (tab === 'house' && isAdmin)) && (
+        {/* Input + Buttons */}
+        <View style={styles.inputWrapper}>
+          {pinnedMessages.length > 0 && (
+            <TouchableOpacity style={styles.scrollPinnedButton} onPress={scrollToPinned}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>📌</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -200,7 +224,12 @@ export default function ChatsScreen() {
               <Text style={styles.buttonText}>{loading ? 'Posting...' : 'Send'}</Text>
             </TouchableOpacity>
           </View>
-        )}
+
+          {/* Scroll-to-bottom button */}
+          <TouchableOpacity style={styles.scrollBottomButton} onPress={scrollToBottom}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>↓</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Modal */}
         <Modal
@@ -246,98 +275,51 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { alignItems: 'center', marginVertical: 10 },
   headerText: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-    gap: 24, // spacing between buttons
-  },
-  tabCircle: {
-    paddingVertical: 6,
-    paddingHorizontal: 18,
-    borderRadius: 50,
-    backgroundColor: '#ccc',
-  },
-  tabCircleActive: {
-    backgroundColor: '#6C63FF',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '600',
-  },
-  tabTextActive: {
-    color: '#fff',
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
+  tabRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 12, gap: 24 },
+  tabCircle: { paddingVertical: 6, paddingHorizontal: 18, borderRadius: 50, backgroundColor: '#ccc' },
+  tabCircleActive: { backgroundColor: '#6C63FF' },
+  tabText: { fontSize: 16, color: '#333', fontWeight: '600' },
+  tabTextActive: { color: '#fff', fontWeight: '700', textDecorationLine: 'underline' },
   scroll: { flex: 1, paddingHorizontal: 16 },
-  noAnnouncements: { textAlign: 'center', color: '#fff', marginTop: 20 },
-  announcementCard: {
-    backgroundColor: '#ffffffcc',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
+  announcementCard: { backgroundColor: '#ffffffcc', borderRadius: 12, padding: 16, marginBottom: 12 },
+  pinnedCard: { borderWidth: 1.5, borderColor: '#6C63FF' },
   announcementText: { fontSize: 16, color: '#333', flex: 1 },
-  announcementFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
+  announcementFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   author: { fontSize: 12, color: '#555', fontStyle: 'italic' },
   date: { fontSize: 12, color: '#555' },
-  menuButton: {
-    paddingHorizontal: 8,
+  menuButton: { paddingHorizontal: 8, justifyContent: 'center', alignItems: 'center' },
+  inputWrapper: { position: 'relative', justifyContent: 'center' },
+  scrollPinnedButton: {
+    position: 'absolute',
+    right: 60,
+    bottom: 90,
+    backgroundColor: '#6C63FF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
-  inputContainer: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderColor: '#ddd',
-  },
-  input: {
-    minHeight: 60,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderColor: '#bbb',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    marginBottom: 8,
-    backgroundColor: '#fafafa',
-  },
-  button: {
+  scrollBottomButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 90,
     backgroundColor: '#6C63FF',
-    borderRadius: 8,
-    paddingVertical: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
+  inputContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderColor: '#ddd', alignItems: 'center' },
+  input: { flex: 1, minHeight: 60, maxHeight: 120, borderWidth: 1, borderColor: '#bbb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, marginRight: 8, backgroundColor: '#fafafa' },
+  button: { backgroundColor: '#6C63FF', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' },
   buttonDisabled: { backgroundColor: '#a39cff' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: '#00000066',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContainer: {
-    width: 220,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    elevation: 5,
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  menuText: {
-    fontSize: 16,
-  },
+  modalOverlay: { flex: 1, backgroundColor: '#00000066', justifyContent: 'center', alignItems: 'center' },
+  menuContainer: { width: 220, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 8, elevation: 5 },
+  menuItem: { paddingVertical: 12, paddingHorizontal: 16 },
+  menuText: { fontSize: 16 },
 });

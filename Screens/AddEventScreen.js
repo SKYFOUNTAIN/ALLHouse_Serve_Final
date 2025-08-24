@@ -9,13 +9,15 @@ import {
   Switch,
   StyleSheet,
   ScrollView,
+  Image
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { collection, addDoc, getDocs, doc, updateDoc } from 'firebase/firestore';
+import * as ImagePicker from 'expo-image-picker';
+import { collection, addDoc, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/firebase';
+import { Video } from 'expo-av';
 
-// All houses available (adjust as needed)
 const ALL_HOUSES = ['Red', 'Blue', 'Green', 'Yellow', 'Black'];
 
 export default function AddEventScreen({ navigation }) {
@@ -25,7 +27,11 @@ export default function AddEventScreen({ navigation }) {
   const [category, setCategory] = useState('sports');
   const [description, setDescription] = useState('');
   const [isCompulsory, setIsCompulsory] = useState(false);
-  const [selectedHouses, setSelectedHouses] = useState([]); // selected houses
+  const [selectedHouses, setSelectedHouses] = useState([]);
+
+  const [imageUri, setImageUri] = useState(null);
+  const [videoUri, setVideoUri] = useState(null);
+  const [externalLink, setExternalLink] = useState('');
 
   const formatDate = (dateObj) => {
     const y = dateObj.getFullYear();
@@ -39,34 +45,37 @@ export default function AddEventScreen({ navigation }) {
     if (selectedDate) setDate(selectedDate);
   };
 
-  // Toggle house in selectedHouses
   const toggleHouse = (house) => {
-    if (selectedHouses.includes(house)) {
-      setSelectedHouses(selectedHouses.filter(h => h !== house));
-    } else {
-      setSelectedHouses([...selectedHouses, house]);
-    }
+    setSelectedHouses((prev) =>
+      prev.includes(house) ? prev.filter((h) => h !== house) : [...prev, house]
+    );
   };
 
-  // Select all or clear all houses
   const toggleSelectAll = () => {
-    if (selectedHouses.length === ALL_HOUSES.length) {
-      setSelectedHouses([]);
-    } else {
-      setSelectedHouses([...ALL_HOUSES]);
-    }
+    setSelectedHouses((prev) =>
+      prev.length === ALL_HOUSES.length ? [] : [...ALL_HOUSES]
+    );
+  };
+
+  // Pick image from device
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return Alert.alert('Permission Denied', 'Cannot access media library.');
+    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    if (!result.canceled) setImageUri(result.assets[0].uri);
+  };
+
+  // Pick video from device
+  const pickVideo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return Alert.alert('Permission Denied', 'Cannot access media library.');
+    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos });
+    if (!result.canceled) setVideoUri(result.assets[0].uri);
   };
 
   const handleAddEvent = async () => {
-    if (!title.trim()) {
-      Alert.alert('Validation Error', 'Please enter a title for the event.');
-      return;
-    }
-
-    if (selectedHouses.length === 0) {
-      Alert.alert('Validation Error', 'Please select at least one house or select all.');
-      return;
-    }
+    if (!title.trim()) return Alert.alert('Validation Error', 'Please enter a title.');
+    if (selectedHouses.length === 0) return Alert.alert('Validation Error', 'Select at least one house.');
 
     try {
       const eventData = {
@@ -78,21 +87,23 @@ export default function AddEventScreen({ navigation }) {
         compulsory: isCompulsory,
         signUps: {},
         signUpCount: 0,
-        houses: selectedHouses, // save selected houses here
+        houses: selectedHouses,
+        media: {
+          image: imageUri || null,
+          video: videoUri || null,
+          link: externalLink || null,
+        },
       };
 
-      // Add event first
       const eventRef = await addDoc(collection(db, 'events'), eventData);
 
-      // If compulsory, auto sign-up all users in selected houses only
       if (isCompulsory) {
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        let updates = {};
+        const updates = {};
         let count = 0;
-
-        usersSnapshot.forEach(docSnap => {
+        usersSnapshot.forEach((docSnap) => {
           const user = docSnap.data();
-          if (selectedHouses.includes(user.house)) { // only users from selected houses
+          if (selectedHouses.includes(user.house)) {
             updates[`signUps.${docSnap.id}`] = {
               name: user.name || 'Unknown',
               house: user.house || '',
@@ -103,12 +114,7 @@ export default function AddEventScreen({ navigation }) {
             count++;
           }
         });
-
-        // Update event document with all signups
-        await updateDoc(eventRef, {
-          ...updates,
-          signUpCount: count,
-        });
+        await updateDoc(doc(db, 'events', eventRef.id), { ...updates, signUpCount: count });
       }
 
       Alert.alert('Success', 'Event added!');
@@ -119,43 +125,35 @@ export default function AddEventScreen({ navigation }) {
       setDescription('');
       setIsCompulsory(false);
       setSelectedHouses([]);
+      setImageUri(null);
+      setVideoUri(null);
+      setExternalLink('');
       navigation.goBack();
     } catch (err) {
+      console.error(err);
       Alert.alert('Error', err.message);
     }
   };
+
+  const createDisabled = !title.trim() || selectedHouses.length === 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.heading}>Add New Event</Text>
 
-      <TextInput
-        placeholder="Event Title"
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-      />
+      <TextInput placeholder="Event Title" value={title} onChangeText={setTitle} style={styles.input} />
 
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
         <Text>Select Date: {formatDate(date)}</Text>
       </TouchableOpacity>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="calendar"
-          onChange={onChangeDate}
-          minimumDate={new Date()}
-        />
+        <DateTimePicker value={date} mode="date" display="calendar" onChange={onChangeDate} minimumDate={new Date()} />
       )}
 
       <Text style={styles.label}>Category</Text>
       <View style={styles.pickerWrapper}>
-        <Picker
-          selectedValue={category}
-          onValueChange={(itemValue) => setCategory(itemValue)}
-        >
+        <Picker selectedValue={category} onValueChange={setCategory}>
           <Picker.Item label="⚽ Sports" value="sports" />
           <Picker.Item label="♟ Board Games" value="boardGames" />
         </Picker>
@@ -169,6 +167,14 @@ export default function AddEventScreen({ navigation }) {
         multiline
       />
 
+      <TextInput
+        placeholder="External Link (optional)"
+        value={externalLink}
+        onChangeText={setExternalLink}
+        style={styles.input}
+        autoCapitalize="none"
+      />
+
       <View style={styles.switchContainer}>
         <Text style={styles.label}>Compulsory Event</Text>
         <Switch
@@ -179,46 +185,56 @@ export default function AddEventScreen({ navigation }) {
         />
       </View>
 
-      {/* House Selection */}
-      <Text style={[styles.label, { marginTop: 10 }]}>Select Houses</Text>
+      <Text style={styles.label}>Media Upload</Text>
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+        <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+          <Text style={styles.uploadButtonText}>Pick Image</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.uploadButton} onPress={pickVideo}>
+          <Text style={styles.uploadButtonText}>Pick Video</Text>
+        </TouchableOpacity>
+      </View>
+
+      {imageUri && <Image source={{ uri: imageUri }} style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }} />}
+      {videoUri && <Video source={{ uri: videoUri }} style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }} useNativeControls resizeMode="contain" />}
+
+      <Text style={styles.label}>Select Houses</Text>
       <View style={styles.housesContainer}>
         <TouchableOpacity onPress={toggleSelectAll} style={styles.selectAllButton}>
           <Text style={{ color: '#fff', fontWeight: '700' }}>
             {selectedHouses.length === ALL_HOUSES.length ? 'Deselect All' : 'Select All'}
           </Text>
         </TouchableOpacity>
-        {ALL_HOUSES.map((house) => {
-          const isSelected = selectedHouses.includes(house);
-          return (
-            <TouchableOpacity
-              key={house}
-              onPress={() => toggleHouse(house)}
-              style={[
-                styles.houseButton,
-                { backgroundColor: isSelected ? getHouseColor(house) : '#ddd' },
-              ]}
-            >
-              <Text style={{ color: isSelected ? '#fff' : '#333', fontWeight: '600' }}>{house}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {ALL_HOUSES.map((house) => (
+          <TouchableOpacity
+            key={house}
+            onPress={() => toggleHouse(house)}
+            style={[
+              styles.houseButton,
+              { backgroundColor: selectedHouses.includes(house) ? getHouseColor(house) : '#ddd' },
+            ]}
+          >
+            <Text style={{ color: selectedHouses.includes(house) ? '#fff' : '#333', fontWeight: '600' }}>{house}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleAddEvent}>
+      <TouchableOpacity
+        style={[styles.button, createDisabled && styles.buttonDisabled]}
+        onPress={handleAddEvent}
+        disabled={createDisabled}
+        activeOpacity={createDisabled ? 1 : 0.7}
+      >
         <Text style={styles.buttonText}>Create Event</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, styles.cancelButton]}
-        onPress={() => navigation.goBack()}
-      >
+      <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => navigation.goBack()}>
         <Text style={[styles.buttonText, { color: '#6C63FF' }]}>Cancel</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// House color helper (same as EventsScreen)
 function getHouseColor(houseName) {
   switch (houseName) {
     case 'Red': return '#e74c3c';
@@ -231,93 +247,19 @@ function getHouseColor(houseName) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 19,
-    paddingBottom: 150,
-    backgroundColor: '#f4f6f8',
-    paddingTop: 60,
-    flex: 1,
-  },
-  heading: {
-    fontSize: 26,
-    fontWeight: '800',
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#333',
-  },
-  label: {
-    marginBottom: 6,
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#555',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    fontSize: 16,
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 14,
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  housesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  houseButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    marginTop: 8,
-    elevation: 1,
-  },
-  selectAllButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    marginBottom: 10,
-    alignSelf: 'flex-start',
-    elevation: 2,
-  },
-  button: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    elevation: 3,
-    marginBottom: 16,
-  },
-  cancelButton: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#6C63FF',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#fff',
-  },
+  container: { padding: 19, paddingBottom: 150, backgroundColor: '#f4f6f8', paddingTop: 60, flex: 1 },
+  heading: { fontSize: 26, fontWeight: '800', marginBottom: 24, textAlign: 'center', color: '#333' },
+  label: { marginBottom: 6, fontWeight: '600', fontSize: 14, color: '#555' },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 14, borderRadius: 14, marginBottom: 16, backgroundColor: '#fff', fontSize: 16 },
+  pickerWrapper: { borderWidth: 1, borderColor: '#ccc', borderRadius: 14, marginBottom: 16, backgroundColor: '#fff', overflow: 'hidden' },
+  switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
+  housesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24, alignItems: 'center' },
+  houseButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, marginTop: 8, elevation: 1 },
+  selectAllButton: { backgroundColor: '#6C63FF', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20, marginBottom: 10, alignSelf: 'flex-start', elevation: 2 },
+  button: { backgroundColor: '#6C63FF', paddingVertical: 16, borderRadius: 14, alignItems: 'center', elevation: 3, marginBottom: 16 },
+  buttonDisabled: { opacity: 0.5 },
+  cancelButton: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#6C63FF', paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
+  buttonText: { fontWeight: '700', fontSize: 16, color: '#fff' },
+  uploadButton: { backgroundColor: '#6C63FF', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14 },
+  uploadButtonText: { color: '#fff', fontWeight: '700' },
 });
-

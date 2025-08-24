@@ -56,58 +56,66 @@ export default function SettingsScreen() {
 
   const backgroundColor = houseColors[userData?.house] || '#f7f7f7';
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      navigation.replace('Login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
-    }
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              navigation.replace('Login');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: 40,
+          paddingTop: 30,
           paddingBottom: insets.bottom + 60,
           paddingHorizontal: 20,
         }}
       >
         <Text style={styles.header}>Settings</Text>
 
-        {/* ACCOUNT SECTION */}
-        <Section title="Account">
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate('Settings', { screen: 'Profile' })}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {userData?.email ? getNameFromEmail(userData.email).charAt(0) : '?'}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.cardTitle}>
-                {userData?.email ? getNameFromEmail(userData.email) : 'Loading...'}
-              </Text>
-              <Text style={styles.cardSubtitle}>{userData?.email || ''}</Text>
-            </View>
-          </TouchableOpacity>
-        </Section>
+        {/* PROFILE CARD */}
+        <TouchableOpacity
+          style={styles.profileCard}
+          onPress={() => navigation.navigate('Settings', { screen: 'Profile' })}
+        >
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {userData?.email ? getNameFromEmail(userData.email).charAt(0) : '?'}
+            </Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>
+              {userData?.email ? getNameFromEmail(userData.email) : 'Loading...'}
+            </Text>
+            <Text style={styles.profileEmail}>{userData?.email || ''}</Text>
+          </View>
+        </TouchableOpacity>
 
-        {/* RESOURCES SECTION */}
-        <Section title="Resources">
+        {/* MAIN BUTTONS */}
+        <View style={styles.buttonSection}>
           <SettingsItem
             icon="book"
             label="Acknowledgements"
             onPress={() => navigation.navigate('Settings', { screen: 'Acknowledgements' })}
           />
-        </Section>
-
-        {/* SUPPORT SECTION */}
-        <Section title="Support">
           <SettingsItem
             icon="envelope"
             label="Contact the team"
@@ -126,104 +134,63 @@ export default function SettingsScreen() {
             textColor="red"
             onPress={handleSignOut}
           />
-        </Section>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// --- REUSABLE COMPONENTS ---
-const Section = ({ title, children }) => (
-  <View style={styles.section}>
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title.toUpperCase()}</Text>
-      <View style={styles.sectionLine} />
-    </View>
-    {children}
-  </View>
-);
-
+// --- SETTINGS ITEM ---
 const SettingsItem = ({ icon, label, onPress, iconColor = '#333', textColor = '#000' }) => (
-  <TouchableOpacity style={styles.item} onPress={onPress}>
-    <FontAwesome name={icon} size={20} color={iconColor} style={styles.itemIcon} />
-    <Text style={[styles.itemText, { color: textColor }]}>{label}</Text>
+  <TouchableOpacity style={styles.buttonCard} onPress={onPress}>
+    <FontAwesome name={icon} size={22} color={iconColor} style={styles.buttonIcon} />
+    <Text style={[styles.buttonText, { color: textColor }]}>{label}</Text>
+    <FontAwesome name="angle-right" size={20} color="#999" style={{ marginLeft: 'auto' }} />
   </TouchableOpacity>
 );
 
 // --- STYLES ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 25,
-    color: '#1c1c1e',
-  },
-  section: {
+  container: { flex: 1 },
+  header: { fontSize: 32, fontWeight: '900', marginBottom: 25, color: '#1c1c1e' },
+  profileCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 30,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#555',
-    marginRight: 10,
-  },
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 15,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#aaa',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 5,
   },
   avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#007AFF',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: '#777',
-  },
-  item: {
+  avatarText: { color: '#fff', fontSize: 28, fontWeight: 'bold' },
+  profileInfo: { flex: 1, marginLeft: 20, justifyContent: 'center' },
+  profileName: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
+  profileEmail: { fontSize: 14, color: '#777' },
+  buttonSection: { marginBottom: 50 },
+  buttonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    backgroundColor: '#fff',
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
-  itemIcon: {
-    width: 30,
-  },
-  itemText: {
-    fontSize: 16,
-    marginLeft: 10,
-  },
+  buttonIcon: { width: 30 },
+  buttonText: { fontSize: 16, marginLeft: 15, fontWeight: '500' },
 });

@@ -66,7 +66,7 @@ def expoAutolinkingPath = runNodeCommand(
   "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })"
 )
 if (expoAutolinkingPath != null && !expoAutolinkingPath.isEmpty()) {
-  def expoPluginPath = new File(expoAutolinkingPath).parentFile.parent + "/android/expo-gradle-plugin"
+  def expoPluginPath = new File(expoAutolinkingPath).parentFile.parentFile.absolutePath + "/expo-modules-core/android/expo-gradle-plugin"
   if (new File(expoPluginPath).exists()) {
     includeBuild(expoPluginPath)
   } else {
@@ -78,3 +78,7 @@ if (expoAutolinkingPath != null && !expoAutolinkingPath.isEmpty()) {
 
 rootProject.name = 'ALLHouse'
 include ':app'
+
+include ':expo'
+project(':expo').projectDir = new File(rootProject.projectDir, '../node_modules/expo/android')
+

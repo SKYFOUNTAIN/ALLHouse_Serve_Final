@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Animated,
+  Linking,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../firebase/firebase';
@@ -36,17 +38,24 @@ const houseLogos = {
   Red: RedLogo,
 };
 
+const houseWebsites = {
+  Yellow: 'https://www.instagram.com/sst.yellowhouse/',
+  Black: 'https://www.instagram.com/sst.blackhouse/',
+  Blue: 'https://www.instagram.com/sstbluehouse/',
+  Green: 'https://www.instagram.com/sst.greenhouse/',
+  Red: 'https://www.instagram.com/sst.redhouse/',
+};
+
 const formatRank = (rank) => {
   if (!rank || rank === 'N/A') return 'N/A';
   const j = rank % 10,
-        k = rank % 100;
+    k = rank % 100;
   if (j === 1 && k !== 11) return rank + "st";
   if (j === 2 && k !== 12) return rank + "nd";
   if (j === 3 && k !== 13) return rank + "rd";
   return rank + "th";
 };
 
-// Quote arrays and helper function
 const getHouseQuote = (rank) => {
   const winningQuotes = [
     "Greatness is earned, not given.",
@@ -173,7 +182,6 @@ export default function YourHouseScreen() {
           if (houseDoc.exists()) {
             const houseData = houseDoc.data();
             setHouseInfo(houseData);
-            // Show achievement modal only if rank is 1, 2 or 3
             if (houseData.rank && [1, 2, 3].includes(Number(houseData.rank))) {
               setShowAchievement(true);
               Animated.timing(fadeAnim, {
@@ -219,8 +227,8 @@ export default function YourHouseScreen() {
 
   const rank = currentHouse.rank ?? 'N/A';
   const points = currentHouse.points ?? '0';
+  const website = userData?.house ? houseWebsites[userData.house] : null;
 
-  // Render the achievement popout overlay
   const AchievementModal = () => (
     <TouchableWithoutFeedback onPress={() => {
       Animated.timing(fadeAnim, {
@@ -248,8 +256,7 @@ export default function YourHouseScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: currentHouse.color || '#eee' }]}>
       {showAchievement && <AchievementModal />}
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}>
-        
-        {/* Header Section */}
+
         <View style={styles.header}>
           {userData?.house && houseLogos[userData.house] && (
             <Image source={houseLogos[userData.house]} style={styles.houseLogo} resizeMode="contain" />
@@ -263,17 +270,24 @@ export default function YourHouseScreen() {
           <Text style={styles.mottoText}>“{currentHouse.motto || '—'}”</Text>
         </View>
 
-        {/* Points Card with big centered text */}
         <Card style={{ alignItems: 'center' }}>
           <Text style={styles.pointsTitle}>Points</Text>
           <Text style={styles.pointsValue}>{points}</Text>
         </Card>
 
-        {/* Quote Card */}
         <Card>
           <Text style={styles.cardTitle}>💬 House Quote</Text>
           <Text style={styles.quoteText}>“{getHouseQuote(rank)}”</Text>
         </Card>
+
+        {website && (
+          <Card style={{ alignItems: 'center' }}>
+            <Text style={styles.cardTitle}>House Website</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(website)}>
+              <Text style={[styles.quoteText, { color: '#007aff' }]}>{website}</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -282,144 +296,23 @@ export default function YourHouseScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 80,
-    gap: 30,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
-  },
-  houseLogo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#fff',
-    marginBottom: 10,
-  },
-  houseName: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.35)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  rankContainer: {
-    position: 'absolute',
-    top: 0,
-    right: 12,
-    backgroundColor: '#fff9',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  rankText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#222',
-  },
-  mottoText: {
-    marginTop: 12,
-    fontSize: 20,
-    fontStyle: 'italic',
-    color: '#fff',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  card: {
-    backgroundColor: '#fff',
-    padding: 22,
-    borderRadius: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  pointsTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#333',
-    marginBottom: 8,
-  },
-  pointsValue: {
-    fontSize: 72,
-    fontWeight: '900',
-    color: '#222',
-  },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 14,
-    color: '#222',
-  },
-  quoteText: {
-    fontSize: 18,
-    fontStyle: 'italic',
-    color: '#555',
-    lineHeight: 26,
-    textAlign: 'center',
-  },
-  achievementOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  achievementBox: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 30,
-    alignItems: 'center',
-    marginHorizontal: 30,
-    borderWidth: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 15,
-  },
-  achievementLogo: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
-  },
-  achievementTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    marginBottom: 8,
-    color: '#222',
-  },
-  achievementText: {
-    fontSize: 20,
-    marginBottom: 14,
-    color: '#444',
-    textAlign: 'center',
-  },
-  achievementRank: {
-    fontWeight: '900',
-    color: '#000',
-  },
-  achievementQuote: {
-    fontSize: 18,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  achievementTap: {
-    fontSize: 14,
-    color: '#888',
-    fontStyle: 'italic',
-  },
+  content: { paddingHorizontal: 20, paddingTop: 80, gap: 30 },
+  header: { alignItems: 'center', marginBottom: 20, position: 'relative' },
+  houseLogo: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: '#fff', marginBottom: 10 },
+  houseName: { fontSize: 34, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4 },
+  rankContainer: { position: 'absolute', top: 0, right: 12, backgroundColor: '#fff9', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  rankText: { fontSize: 20, fontWeight: '700', color: '#222' },
+  mottoText: { marginTop: 12, fontSize: 20, fontStyle: 'italic', color: '#fff', textAlign: 'center', paddingHorizontal: 20 },
+  card: { backgroundColor: '#fff', padding: 22, borderRadius: 18, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 6 },
+  pointsTitle: { fontSize: 28, fontWeight: '900', color: '#333', marginBottom: 8 },
+  pointsValue: { fontSize: 72, fontWeight: '900', color: '#222' },
+  cardTitle: { fontSize: 22, fontWeight: '800', marginBottom: 14, color: '#222' },
+  quoteText: { fontSize: 18, fontStyle: 'italic', color: '#555', lineHeight: 26, textAlign: 'center' },
+  achievementOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  achievementBox: { backgroundColor: '#fff', borderRadius: 24, padding: 30, alignItems: 'center', marginHorizontal: 30, borderWidth: 4, shadowColor: '#000', shadowOpacity: 0.4, shadowOffset: { width: 0, height: 10 }, shadowRadius: 20, elevation: 15 },
+  achievementLogo: { width: 120, height: 120, marginBottom: 20 },
+  achievementTitle: { fontSize: 28, fontWeight: '900', marginBottom: 8, color: '#222' },
+  achievementText: { fontSize: 20, marginBottom: 14, color: '#444', textAlign: 'center' },
+  achievementRank: { fontWeight: '900', color: '#000' },
+  achievementTap: { fontSize: 14, color: '#888', fontStyle: 'italic' },
 });

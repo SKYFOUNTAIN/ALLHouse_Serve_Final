@@ -5,14 +5,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth } from '../firebase/firebase';
 import { db } from '../firebase/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, increment, collection, query, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, collection, query, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import { BarChart, Grid, XAxis } from 'react-native-svg-charts';
 import * as scale from 'd3-scale';
 
 function Button({ children, variant = 'solid', style, ...props }) {
   const backgroundColor =
     variant === 'ghost' ? 'transparent' :
-    variant === 'outline' ? '#fff' : '#6C63FF';
+      variant === 'outline' ? 'transparent' : '#6C63FF';
 
   const textColor =
     variant === 'ghost' || variant === 'outline' ? '#6C63FF' : '#fff';
@@ -23,16 +23,22 @@ function Button({ children, variant = 'solid', style, ...props }) {
     <TouchableOpacity
       style={[{
         backgroundColor,
-        padding: 10,
-        borderRadius: 12,
-        borderWidth: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 18,
+        borderRadius: 16,
+        borderWidth: 1.5,
         borderColor,
         alignItems: 'center',
-        marginTop: 6,
+        justifyContent: 'center',
+        marginTop: 8,
+        shadowColor: '#6C63FF',
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
       }, style]}
       {...props}
     >
-      <Text style={{ color: textColor }}>{children}</Text>
+      <Text style={{ color: textColor, fontWeight: '600', fontSize: 15 }}>{children}</Text>
     </TouchableOpacity>
   );
 }
@@ -88,7 +94,6 @@ export default function HomeScreen({ navigation }) {
               data.categories.map(normalizeCategory).includes(normalizeCategory(ev.category))
             )
             : upcoming;
-
 
           const selectedEvent = matchedEvents.length > 0 ? matchedEvents[0] : null;
           setTopEvent(selectedEvent);
@@ -187,7 +192,6 @@ export default function HomeScreen({ navigation }) {
     ]);
   };
 
-
   const barData = houseLeaderboard.map(h => ({
     value: h.points,
     svg: { fill: getHouseColor(h.id) },
@@ -196,14 +200,13 @@ export default function HomeScreen({ navigation }) {
 
   const barLabels = houseLeaderboard.map(h => h.id);
 
-  // 🔥 Limit to 3 newest pinned announcements
   const pinnedAnnouncements = announcements
     .filter(ann => ann.pinned)
     .slice(0, 3);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: currentHouse ? getHouseColor(currentHouse) : '#f7f7f7' }]}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 70, paddingTop: 60 }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80, paddingTop: 60 }]}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>🏆 Top Event For You</Text>
@@ -230,7 +233,9 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.bodyText}>No pinned announcements yet.</Text>
           ) : (
             pinnedAnnouncements.map(ann => (
-              <Text key={ann.id} style={styles.bodyText}>• {ann.text}</Text>
+              <View key={ann.id} style={styles.announcementChip}>
+                <Text style={styles.announcementText}>📢 {ann.text}</Text>
+              </View>
             ))
           )}
         </View>
@@ -248,7 +253,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               ))}
               <BarChart
-                style={{ height: 150, marginTop: 20 }}
+                style={{ height: 160, marginTop: 20, borderRadius: 12 }}
                 data={barData}
                 yAccessor={({ item }) => item.value}
                 svg={{ fill: 'grey' }}
@@ -265,7 +270,7 @@ export default function HomeScreen({ navigation }) {
                 data={barData}
                 scale={scale.scaleBand}
                 formatLabel={(value, index) => barLabels[index]}
-                svg={{ fontSize: 14, fill: '#333' }}
+                svg={{ fontSize: 14, fill: '#333', fontWeight: '600' }}
                 spacingInner={0.3}
                 spacingOuter={0.2}
               />
@@ -283,7 +288,7 @@ function getHouseColor(houseName) {
     case 'Blue': return '#3498db';
     case 'Green': return '#2ecc71';
     case 'Yellow': return '#FFD700';
-    case 'Black': return '#333333';
+    case 'Black': return '#2c3e50';
     default: return '#999999';
   }
 }
@@ -292,32 +297,48 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16 },
   card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: 18,
+    marginBottom: 18,
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  cardTitle: { fontSize: 22, fontWeight: 'bold' },
-  bodyText: { fontSize: 16, marginTop: 6, lineHeight: 22 },
-  note: { fontSize: 12, color: '#666', marginTop: 8 },
-  cardButton: { marginTop: 12, borderRadius: 12 },
+  cardTitle: { fontSize: 22, fontWeight: '800', color: '#2c3e50' },
+  bodyText: { fontSize: 16, marginTop: 6, lineHeight: 22, color: '#2c3e50' },
+  note: { fontSize: 12, color: '#666', marginTop: 8, fontStyle: 'italic' },
+  cardButton: { marginTop: 14, borderRadius: 16 },
   leaderboardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 14,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    padding: 12,
+    borderRadius: 12,
   },
   houseText: { fontSize: 16, fontWeight: '700' },
-  pointsText: { fontSize: 16 },
+  pointsText: { fontSize: 16, fontWeight: '600', color: '#34495e' },
+  announcementChip: {
+    backgroundColor: 'rgba(108,99,255,0.1)',
+    padding: 10,
+    marginTop: 10,
+    borderRadius: 12,
+  },
+  announcementText: {
+    fontSize: 15,
+    color: '#2c3e50',
+    fontWeight: '500',
+  },
 });
