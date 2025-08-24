@@ -20,18 +20,21 @@ import { Video } from 'expo-av';
 
 const ALL_HOUSES = ['Red', 'Blue', 'Green', 'Yellow', 'Black'];
 
-export default function AddEventScreen({ navigation }) {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [category, setCategory] = useState('sports');
-  const [description, setDescription] = useState('');
-  const [isCompulsory, setIsCompulsory] = useState(false);
-  const [selectedHouses, setSelectedHouses] = useState([]);
+export default function AddEventScreen({ navigation, route }) {
+  const editingEvent = route.params?.eventToEdit || null;
 
-  const [imageUri, setImageUri] = useState(null);
-  const [videoUri, setVideoUri] = useState(null);
-  const [externalLink, setExternalLink] = useState('');
+  // State variables
+  const [title, setTitle] = useState(editingEvent?.title || '');
+  const [date, setDate] = useState(editingEvent ? new Date(editingEvent.date) : new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [category, setCategory] = useState(editingEvent?.category || 'sports');
+  const [description, setDescription] = useState(editingEvent?.description || '');
+  const [isCompulsory, setIsCompulsory] = useState(editingEvent?.compulsory || false);
+  const [selectedHouses, setSelectedHouses] = useState(editingEvent?.houses || []);
+
+  const [imageUri, setImageUri] = useState(editingEvent?.media?.image || null);
+  const [videoUri, setVideoUri] = useState(editingEvent?.media?.video || null);
+  const [externalLink, setExternalLink] = useState(editingEvent?.media?.link || '');
 
   const formatDate = (dateObj) => {
     const y = dateObj.getFullYear();
@@ -73,7 +76,13 @@ export default function AddEventScreen({ navigation }) {
     if (!result.canceled) setVideoUri(result.assets[0].uri);
   };
 
-  const handleAddEvent = async () => {
+  // Remove selected image
+  const removeImage = () => setImageUri(null);
+
+  // Remove selected video
+  const removeVideo = () => setVideoUri(null);
+
+  const handleSaveEvent = async () => {
     if (!title.trim()) return Alert.alert('Validation Error', 'Please enter a title.');
     if (selectedHouses.length === 0) return Alert.alert('Validation Error', 'Select at least one house.');
 
@@ -85,8 +94,6 @@ export default function AddEventScreen({ navigation }) {
         description,
         color: category === 'sports' ? 'blue' : 'yellow',
         compulsory: isCompulsory,
-        signUps: {},
-        signUpCount: 0,
         houses: selectedHouses,
         media: {
           image: imageUri || null,
@@ -95,39 +102,37 @@ export default function AddEventScreen({ navigation }) {
         },
       };
 
-      const eventRef = await addDoc(collection(db, 'events'), eventData);
+      if (editingEvent) {
+        // Update existing event
+        await updateDoc(doc(db, 'events', editingEvent.id), eventData);
+        Alert.alert('Success', 'Event updated!');
+      } else {
+        // Create new event
+        const eventRef = await addDoc(collection(db, 'events'), { ...eventData, signUps: {}, signUpCount: 0 });
 
-      if (isCompulsory) {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const updates = {};
-        let count = 0;
-        usersSnapshot.forEach((docSnap) => {
-          const user = docSnap.data();
-          if (selectedHouses.includes(user.house)) {
-            updates[`signUps.${docSnap.id}`] = {
-              name: user.name || 'Unknown',
-              house: user.house || '',
-              email: user.email || '',
-              signedUpAt: new Date().toISOString(),
-              attended: false,
-            };
-            count++;
-          }
-        });
-        await updateDoc(doc(db, 'events', eventRef.id), { ...updates, signUpCount: count });
+        if (isCompulsory) {
+          const usersSnapshot = await getDocs(collection(db, 'users'));
+          const updates = {};
+          let count = 0;
+          usersSnapshot.forEach((docSnap) => {
+            const user = docSnap.data();
+            if (selectedHouses.includes(user.house)) {
+              updates[`signUps.${docSnap.id}`] = {
+                name: user.name || 'Unknown',
+                house: user.house || '',
+                email: user.email || '',
+                signedUpAt: new Date().toISOString(),
+                attended: false,
+              };
+              count++;
+            }
+          });
+          await updateDoc(doc(db, 'events', eventRef.id), { ...updates, signUpCount: count });
+        }
+
+        Alert.alert('Success', 'Event added!');
       }
 
-      Alert.alert('Success', 'Event added!');
-      // Reset form
-      setTitle('');
-      setDate(new Date());
-      setCategory('sports');
-      setDescription('');
-      setIsCompulsory(false);
-      setSelectedHouses([]);
-      setImageUri(null);
-      setVideoUri(null);
-      setExternalLink('');
       navigation.goBack();
     } catch (err) {
       console.error(err);
@@ -139,7 +144,7 @@ export default function AddEventScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.heading}>Add New Event</Text>
+      <Text style={styles.heading}>{editingEvent ? 'Edit Event' : 'Add New Event'}</Text>
 
       <TextInput placeholder="Event Title" value={title} onChangeText={setTitle} style={styles.input} />
 
@@ -195,8 +200,23 @@ export default function AddEventScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {imageUri && <Image source={{ uri: imageUri }} style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }} />}
-      {videoUri && <Video source={{ uri: videoUri }} style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 12 }} useNativeControls resizeMode="contain" />}
+      {imageUri && (
+        <View style={{ marginBottom: 12 }}>
+          <Image source={{ uri: imageUri }} style={{ width: '100%', height: 200, borderRadius: 12 }} />
+          <TouchableOpacity onPress={removeImage} style={[styles.uploadButton, { marginTop: 8 }]}>
+            <Text style={styles.uploadButtonText}>Remove Image</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {videoUri && (
+        <View style={{ marginBottom: 12 }}>
+          <Video source={{ uri: videoUri }} style={{ width: '100%', height: 200, borderRadius: 12 }} useNativeControls resizeMode="contain" />
+          <TouchableOpacity onPress={removeVideo} style={[styles.uploadButton, { marginTop: 8 }]}>
+            <Text style={styles.uploadButtonText}>Remove Video</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Text style={styles.label}>Select Houses</Text>
       <View style={styles.housesContainer}>
@@ -221,11 +241,11 @@ export default function AddEventScreen({ navigation }) {
 
       <TouchableOpacity
         style={[styles.button, createDisabled && styles.buttonDisabled]}
-        onPress={handleAddEvent}
+        onPress={handleSaveEvent}
         disabled={createDisabled}
         activeOpacity={createDisabled ? 1 : 0.7}
       >
-        <Text style={styles.buttonText}>Create Event</Text>
+        <Text style={styles.buttonText}>{editingEvent ? 'Save Changes' : 'Create Event'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => navigation.goBack()}>
@@ -260,6 +280,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.5 },
   cancelButton: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#6C63FF', paddingVertical: 12, borderRadius: 14, alignItems: 'center' },
   buttonText: { fontWeight: '700', fontSize: 16, color: '#fff' },
-  uploadButton: { backgroundColor: '#6C63FF', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14 },
+  uploadButton: { backgroundColor: '#6C63FF', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, alignItems: 'center' },
   uploadButtonText: { color: '#fff', fontWeight: '700' },
 });

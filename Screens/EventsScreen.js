@@ -115,6 +115,10 @@ export default function EventsScreen() {
     ]);
   };
 
+  const editEvent = (event) => {
+    navigation.navigate('AddEventScreen', { eventToEdit: event });
+  };
+
   const markedDates = filteredEvents.reduce((acc, event) => {
     acc[event.date] = { marked: true, dotColor: event.color || 'blue', selected: selectedDate === event.date };
     return acc;
@@ -183,12 +187,20 @@ export default function EventsScreen() {
               <Text style={styles.signUpButtonText}>Sign Up</Text>
             </TouchableOpacity>
             {isAdmin && (
-              <TouchableOpacity
-                style={[styles.signUpButton, { backgroundColor: '#e74c3c', marginTop: 10 }]}
-                onPress={() => deleteEvent(event.id, event.title)}
-              >
-                <Text style={styles.signUpButtonText}>Delete Event</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', marginTop: 10, gap: 10 }}>
+                <TouchableOpacity
+                  style={[styles.signUpButton, { backgroundColor: '#f1c40f', flex: 1 }]}
+                  onPress={() => editEvent(event)}
+                >
+                  <Text style={styles.signUpButtonText}>Edit Event</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.signUpButton, { backgroundColor: '#e74c3c', flex: 1 }]}
+                  onPress={() => deleteEvent(event.id, event.title)}
+                >
+                  <Text style={styles.signUpButtonText}>Delete Event</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         )}
