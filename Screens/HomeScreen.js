@@ -209,7 +209,7 @@ export default function HomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80, paddingTop: 60 }]}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>🏆 Top Event For You</Text>
+            <Text style={styles.cardTitle}> Top Event For You</Text>
             <Button variant="ghost" onPress={() => navigation.navigate('Events')} style={{ padding: 0 }}>
               See All
             </Button>
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  cardTitle: { fontSize: 22, fontWeight: '800', color: '#2c3e50' },
+  cardTitle: { fontSize: 23, fontWeight: '800', color: '#2c3e50' },
   bodyText: { fontSize: 16, marginTop: 6, lineHeight: 22, color: '#2c3e50' },
   note: { fontSize: 12, color: '#666', marginTop: 8, fontStyle: 'italic' },
   cardButton: { marginTop: 14, borderRadius: 16 },

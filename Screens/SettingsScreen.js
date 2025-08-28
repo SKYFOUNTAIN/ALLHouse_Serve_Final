@@ -7,6 +7,9 @@ import {
   Alert,
   StyleSheet,
   SafeAreaView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,10 +26,16 @@ const houseColors = {
   Black: '#2c3e50',
 };
 
+// Enable smooth animation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState(null);
+  const [aboutExpanded, setAboutExpanded] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -80,6 +89,11 @@ export default function SettingsScreen() {
     );
   };
 
+  const toggleAbout = () => {
+    LayoutAnimation.easeInEaseOut();
+    setAboutExpanded(!aboutExpanded);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView
@@ -127,6 +141,34 @@ export default function SettingsScreen() {
               ])
             }
           />
+
+          {/* ABOUT BUTTON WITH EXPAND */}
+          <TouchableOpacity style={styles.buttonCard} onPress={toggleAbout}>
+            <FontAwesome
+              name="info-circle"
+              size={22}
+              color="#333"
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.buttonText}>About</Text>
+            <FontAwesome
+              name={aboutExpanded ? 'angle-up' : 'angle-down'}
+              size={20}
+              color="#999"
+              style={{ marginLeft: 'auto' }}
+            />
+          </TouchableOpacity>
+          {aboutExpanded && (
+            <View style={styles.aboutContent}>
+              <Text style={styles.aboutText}>App Model: v1.0.0</Text>
+              <Text style={styles.aboutText}>Developed by: Team 170+</Text>
+              <Text style={styles.aboutText}>
+                This app helps manage events, announcements, and House activities in one place.
+              </Text>
+            </View>
+          )}
+
+          {/* LOGOUT */}
           <SettingsItem
             icon="sign-out"
             label="Sign out"
@@ -193,4 +235,14 @@ const styles = StyleSheet.create({
   },
   buttonIcon: { width: 30 },
   buttonText: { fontSize: 16, marginLeft: 15, fontWeight: '500' },
+
+  // ABOUT EXPANDED CONTENT
+  aboutContent: {
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    marginTop: -5,
+  },
+  aboutText: { fontSize: 14, color: '#555', marginBottom: 5 },
 });

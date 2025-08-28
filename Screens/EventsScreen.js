@@ -171,6 +171,8 @@ export default function EventsScreen() {
 
   const renderEventCard = (event) => {
     const isExpanded = expandedEventId === event.id;
+
+
     return (
       <Card key={event.id}>
         <TouchableOpacity onPress={() => toggleExpandEvent(event.id)} style={styles.eventHeaderRow}>
@@ -212,7 +214,7 @@ export default function EventsScreen() {
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: userHouse ? getHouseColor(userHouse) : '#f7f7f7' }]}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         <View style={styles.headerRow}>
-          <Text style={styles.header}>📅 Upcoming Events</Text>
+          <Text style={styles.header}>Upcoming Events</Text>
           <TouchableOpacity onPress={() => setShowListView(!showListView)} style={styles.toggleButton}>
             <Text style={styles.toggleButtonText}>{showListView ? '🗓' : '☰'}</Text>
           </TouchableOpacity>

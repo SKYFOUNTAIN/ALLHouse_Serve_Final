@@ -77,7 +77,7 @@ export default function LoginScreen() {
         <Text style={styles.subHeader}>Login to continue to ALLHouse</Text>
       </View>
 
-      <View style={styles.card}>
+      <View>
         <TextInput
           style={styles.input}
           placeholder="Email"

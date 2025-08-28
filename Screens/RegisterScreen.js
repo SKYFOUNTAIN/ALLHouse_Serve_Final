@@ -74,7 +74,7 @@ export default function RegisterScreen() {
         <Text style={styles.subHeader}>Create your account to get started</Text>
       </View>
 
-      <View style={styles.card}>
+      <View>
         <TextInput
           style={styles.input}
           value={email}
